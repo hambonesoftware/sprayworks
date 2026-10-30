@@ -4,12 +4,12 @@ A browser-based 3D spray physics puzzle from Hambone Software. No build, account
 
 ## Play
 
-1. Drag anywhere on the workshop to aim. The Aim: wheel button aligns a starting shot.
+1. Select MOVE and drag to reposition the gun left/right and forward/back. Expand Gun position & height for exact sliders. Select AIM and drag to steer without snapping. Fine slows adjustments; Spray lock frees your thumb. The Aim: wheel button aligns a starting shot.
 2. Hold SPRAY (or Space) to hit the outer red paddles. Momentum spins the wheel and its ratchet lifts the gate.
 3. Once the gate latches open, aim at the orange funnel. Aim: funnel provides a starting alignment.
 4. Fill the receiver to 75% before exhausting the supply. JET is easiest for the first attempt.
 
-JET is precise; FAN spreads horizontally; CONE spreads in both axes. Pressure changes flow and launch speed. Free play gives unlimited fluid and opens the gate. View changes the camera. Sound is off until enabled. Restart resets the scene. Keyboard 1/2/3 selects a nozzle; R restarts; Escape pauses. The page prevents touch scrolling and releases the trigger on focus loss.
+JET is precise; FAN spreads horizontally; CONE spreads in both axes. Pressure changes flow and launch speed. Free play gives unlimited fluid and opens the gate. View changes the camera. Sound is off until enabled. Restart resets the scene. Keyboard arrows control the selected mode; M selects Move, A selects Aim, Shift slows adjustments, 1/2/3 selects a nozzle, R restarts, and Escape pauses. The page prevents touch scrolling and releases the trigger on focus loss.
 
 ## GitHub Pages
 
@@ -31,7 +31,7 @@ The simulation runs at a fixed 120 Hz with capped frame catch-up. Particles are 
 
 ## Verification
 
-Six automated tests cover closed-gate occlusion, a complete winnable challenge, torque differences between hub and tip, unlimited sandbox supply, exhausted-supply behavior, and high-speed gate collision. All passed during development. A deterministic 17-second scripted run filled the receiver with approximately 33% supply remaining.
+Eight automated tests cover closed-gate occlusion, a complete winnable challenge, torque differences between hub and tip, unlimited sandbox supply, exhausted-supply behavior, high-speed gate collision, moving emission origins, and bounded independent gun positions. All passed during development. A deterministic 17-second scripted run filled the receiver with approximately 33% supply remaining.
 
 Browser rendering and touch-device performance remain unverified: the available remote QA browser reported WebGL disabled and could not create a graphics context. Test on a WebGL 2-capable Safari/Chrome/Edge device before considering the visual experience validated.
 
