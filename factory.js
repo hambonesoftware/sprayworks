@@ -359,7 +359,10 @@ function start(){
   $("intro").classList.add("hidden");running=true;mission.paused=false;
   $("pauseBtn").textContent="Pause";drawUI();showToast("Crew deployed — select a washer to start");
 }
+window.sprayworksStart=start;
+window.sprayworksReady=true;
 $("beginBtn").onclick=start;
+if($("intro").classList.contains("hidden"))start();
 $("helpBtn").onclick=()=>{mission.paused=true;$("intro").classList.remove("hidden");$("beginBtn").textContent="BACK TO THE WORKSHOP";};
 $("pauseBtn").onclick=()=>{if(!running)return;mission.paused=!mission.paused;$("pauseBtn").textContent=mission.paused?"Resume":"Pause";showToast(mission.paused?"Mission paused":"Back to work");};
 $("restartBtn").onclick=()=>{running=true;resetMission();mission.paused=false;$("intro").classList.add("hidden");$("pauseBtn").textContent="Pause";showToast("Fresh mission started");};
