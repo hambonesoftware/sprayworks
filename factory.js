@@ -6,7 +6,7 @@ const canvas=$("renderCanvas");
 let engine;
 try{engine=new B.Engine(canvas,true,{stencil:true,preserveDrawingBuffer:false,antialias:true,powerPreference:"high-performance"});}
 catch(error){$("error").textContent="Your browser could not start the 3D workshop. Enable WebGL or try an up-to-date browser."; $("error").classList.remove("hidden"); throw error;}
-engine.setHardwareScalingLevel(Math.max(1,(window.devicePixelRatio||1)/1.5));
+engine.setHardwareScalingLevel(Math.max(1.25,(window.devicePixelRatio||1)/1.15));
 const scene=new B.Scene(engine);
 scene.clearColor=new B.Color4(.045,.105,.15,1);
 scene.fogMode=B.Scene.FOGMODE_EXP2;
@@ -22,13 +22,14 @@ const sunlight=new B.DirectionalLight("overhead",new B.Vector3(-.55,-1,-.4),scen
 sunlight.position.set(3,16,8);sunlight.intensity=2.35;
 const rimlight=new B.PointLight("blue worklight",new B.Vector3(-8,8,-6),scene);
 rimlight.diffuse=B.Color3.FromHexString("#57cfff");rimlight.intensity=190;rimlight.range=22;
-const shadow=new B.ShadowGenerator(1024,sunlight);
+const shadow=new B.ShadowGenerator(512,sunlight);
 shadow.usePercentageCloserFiltering=true;
 shadow.filteringQuality=B.ShadowGenerator.QUALITY_LOW;
 const hex=c=>B.Color3.FromHexString(c);
 function material(name,color,metal=.15,rough=.45,glow=0){
-  const m=new B.PBRMaterial(name,scene);
-  m.albedoColor=hex(color);m.metallic=metal;m.roughness=rough;
+  const m=new B.StandardMaterial(name,scene);
+  m.diffuseColor=hex(color);m.specularColor=new B.Color3(metal*.55,metal*.55,metal*.55);
+  m.specularPower=Math.round(16+(1-rough)*48);
   if(glow)m.emissiveColor=hex(color).scale(glow);
   return m;
 }
@@ -85,9 +86,7 @@ function pipe(name,a,b,diameter,mat){
   const first=new B.Vector3(...a),last=new B.Vector3(...b),direction=last.subtract(first);
   const mesh=B.MeshBuilder.CreateCylinder(name,{diameter,height:direction.length(),tessellation:20},scene);
   mesh.position=first.add(last).scale(.5);
-  const rotation=new B.Quaternion();
-  B.Quaternion.FromUnitVectorsToRef(B.Axis.Y,direction.normalize(),rotation);
-  mesh.rotationQuaternion=rotation;
+  mesh.rotationQuaternion=B.Quaternion.FromEulerAngles(0,0,Math.atan2(-direction.x,direction.y));
   mesh.material=mat;addShadow(mesh);return mesh;
 }
 function sign(text,x,y,z,w=3){
@@ -100,7 +99,7 @@ function sign(text,x,y,z,w=3){
   c.fillStyle="#f7f7e5";c.textAlign="center";c.font="900 51px sans-serif";
   c.fillText(text,320,101,590);texture.update();
   const m=new B.StandardMaterial("labelmat "+text,scene);
-  m.diffuseTexture=texture;m.emissiveColor=new B.Color3(.7,.8,.9);m.opacityTexture=texture;m.backFaceCulling=false;m.disableLighting=true;
+  m.diffuseTexture=texture;m.emissiveColor=new B.Color3(.7,.8,.9);m.backFaceCulling=false;m.disableLighting=true;
   const plane=B.MeshBuilder.CreatePlane("sign "+text,{width:w,height:w*.25},scene);
   plane.position.set(x,y,z);plane.material=m;plane.billboardMode=B.Mesh.BILLBOARDMODE_ALL;
   return plane;
@@ -260,11 +259,12 @@ function taskClick(id){
   if(!isReady(mission,t)){showToast("Locked — finish the earlier repairs first");return;}
   let w=workerById(mission,mission.selected);
   if(w.skill!==t.type){
-    showToast(t.type==="clean"?"Choose Pip or Mox to wash":t.type==="haul"?"Choose Tug to haul":t.type==="repair"?"Choose Bolt to repair":"Choose Lux to restart");
-    return;
+    const candidates=mission.workers.filter(candidate=>candidate.skill===t.type);
+    w=candidates.find(candidate=>!candidate.taskId)||candidates[0];
+    selectWorker(mission,w.id);
   }
   if(assignTask(mission,w.id,id)){
-    showToast(w.name+": "+t.label);
+    showToast(w.name+" deployed: "+t.label);
     destination.isVisible=false;drawUI();
   }
 }
@@ -272,7 +272,7 @@ function chooseWorker(id){
   selectWorker(mission,id);drawUI();
 }
 function nextOrder(){
-  if(!running)return;
+  if(!running)start();
   const t=mission.tasks.find(item=>isReady(mission,item)&&item.status==="idle");
   if(!t){showToast("All available tasks are already underway");return;}
   const candidates=mission.workers.filter(w=>w.skill===t.type);
@@ -334,7 +334,7 @@ canvas.addEventListener("pointerup",e=>{
   if(!running||mission.paused||Math.hypot(e.clientX-start.x,e.clientY-start.y)>13)return;
   const bounds=canvas.getBoundingClientRect();
   const x=e.clientX-bounds.left,y=e.clientY-bounds.top;
-  const picked=scene.pick(x,y,m=>m.isPickable&&m!==floor);
+  const picked=scene.pick(x,y,m=>m.isPickable&&m!==floor&&Boolean(pickMeta(m)));
   const meta=picked?.hit?pickMeta(picked.pickedMesh):null;
   if(meta?.kind==="worker"){chooseWorker(meta.id);return;}
   if(meta?.kind==="task"){taskClick(meta.id);return;}
@@ -415,7 +415,7 @@ function frame(){
   const now=performance.now(),dt=Math.min(engine.getDeltaTime()/1000,.05);
   if(running&&!mission.paused)tickMission(mission,dt);
   updateWorld(dt,now);
-  if(now-lastUi>180){drawUI();lastUi=now;}
+  if(now-lastUi>500){drawUI();lastUi=now;}
   if(toastTimer&&now>toastTimer){$("toast").classList.remove("show");toastTimer=0;}
   if(mission.won&&!announcedWin){
     announcedWin=true;
