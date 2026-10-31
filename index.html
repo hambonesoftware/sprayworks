@@ -1,135 +1,19 @@
 <!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#101b2a">
-  <meta name="description" content="SprayWorks Factory Crew: command five miniature specialists, clean an industrial pump, rebuild it and bring it back to life in a 3D strategy puzzle.">
-  <title>SprayWorks: Factory Crew | Hambone Software</title>
-  <link rel="stylesheet" href="./crew.css?v=1">
-</head>
-<body>
-  <main id="app">
-    <canvas id="renderCanvas" aria-label="3D factory mission. Tap workers to select, tap tasks to assign, or tap the floor to move." tabindex="0"></canvas>
-    <header class="topbar">
-      <div class="identity"><div class="logo">SPRAY<span>WORKS</span></div><div class="sublogo">FACTORY CREW <span>•</span> HAMBONE SOFTWARE</div></div>
-      <div class="top-actions">
-        <button id="helpBtn" title="How to play" aria-label="How to play">?</button>
-        <button id="pauseBtn" title="Pause game">Pause</button>
-        <button id="restartBtn" title="Restart mission">Restart</button>
-      </div>
-    </header>
-    <section class="mission" aria-label="Mission progress">
-      <div class="kicker">MISSION 01 / PUMP RESCUE</div>
-      <h1 id="objective">Clean the machinery</h1>
-      <p id="objectiveDetail">Select a washer, then tap a glowing grime marker.</p>
-      <div class="progress-track"><span id="progressFill"></span></div>
-      <div class="mission-stats">
-        <span>SOAP <b id="cleanCount">0/3</b></span>
-        <span>WASTE <b id="wasteCount">0/2</b></span>
-        <span>REPAIR <b id="repairCount">0/3</b></span>
-      </div>
-      <div class="mission-clock">OPERATION TIME <b id="timeValue">00:00</b></div>
-    </section>
-    <aside class="tasks" aria-label="Active orders">
-      <div class="panel-title"><span>WORK ORDERS</span><small id="taskCounter">0 / 9</small></div>
-      <div id="taskList" class="task-list"></div>
-      <p class="task-help">Tap an order to send the matching specialist. Locked orders unlock as you repair the pump.</p>
-    </aside>
-    <div class="camera-controls" aria-label="Camera controls">
-      <button id="cameraLeft" aria-label="Rotate camera left">↶</button>
-      <button id="cameraRight" aria-label="Rotate camera right">↷</button>
-      <button id="cameraIn" aria-label="Zoom in">+</button>
-      <button id="cameraOut" aria-label="Zoom out">−</button>
-    </div>
-    <section class="crew-panel" aria-label="Crew">
-      <div class="crew-heading"><div><small>YOUR MINIATURE RESPONSE TEAM</small><strong>Choose a worker, then give an order</strong></div><span id="crewStatus">5 workers available</span></div>
-      <div id="crewList" class="crew-list"></div>
-      <div class="command-row">
-        <div id="commandInfo">Pip selected · tap the floor to move</div>
-        <button id="selectBest">Assign next job</button>
-      </div>
-    </section>
-    <div id="toast" role="status" aria-live="polite"></div>
-    <div id="loading" class="overlay" role="status" aria-live="polite"><div class="intro-card loading-card"><div class="kicker">SPRAYWORKS / FACTORY CREW</div><h2>Preparing the <em>workshop</em></h2><div class="loading-track"><div id="loadingFill"></div></div><div class="loading-row"><strong id="loadingPercent">0%</strong><span id="loadingStage">Connecting to the workshop…</span></div></div></div>
-    <div id="intro" class="overlay hidden">
-      <div class="intro-card">
-        <div class="kicker">WELCOME TO THE LITTLE BIG WORKSHOP</div>
-        <h2>Tiny crew.<br><em>Massive mess.</em></h2>
-        <p>A factory pump has seized under layers of oil and grime. Send in five pint-sized specialists to clean it, collect the waste, reinstall its missing parts, and restart the line.</p>
-        <div class="tutorial-grid">
-          <div><b>01</b><strong>SELECT</strong><span>Tap one of your five workers.</span></div>
-          <div><b>02</b><strong>COMMAND</strong><span>Tap the floor to move, or a glowing task to work.</span></div>
-          <div><b>03</b><strong>REBUILD</strong><span>Clean → haul → repair → restart.</span></div>
-        </div>
-        <button id="beginBtn" class="primary" >DEPLOY THE CREW</button>
-        <div class="intro-footer">Mouse or touch • Babylon.js 3D • No account required</div>
-      </div>
-    </div>
-    <div id="win" class="overlay hidden">
-      <div class="intro-card won">
-        <div class="kicker">MISSION COMPLETE</div>
-        <h2>Machine <em>restored!</em></h2>
-        <p id="winSummary">Your factory crew got the line running again.</p>
-        <button id="againBtn" class="primary">PLAY AGAIN</button>
-        <a href="./legacy.html">Try the original spray physics lab</a>
-      </div>
-    </div>
-    <div id="error" class="error hidden" role="alert"></div>
-  </main>
-  <script>
-    (function(){
-      var overlay=document.getElementById("loading");
-      var fill=document.getElementById("loadingFill");
-      var percent=document.getElementById("loadingPercent");
-      var stage=document.getElementById("loadingStage");
-      var error=document.getElementById("error");
-      var progress=0;
-      var done=false;
-      var stages=[[12,"Downloading 3D engine…"],[35,"Preparing factory materials…"],[60,"Building the workshop…"],[82,"Assembling the crew…"],[94,"Finalizing the scene…"]];
-      function update(value,message){
-        progress=Math.max(progress,Math.min(100,value));
-        fill.style.width=progress+"%";
-        percent.textContent=Math.floor(progress)+"%";
-        if(message)stage.textContent=message;
-      }
-      window.sprayworksProgress=update;
-      window.sprayworksReadyForPlay=function(){
-        if(done)return;
-        done=true;
-        update(100,"Ready to deploy!");
-        setTimeout(function(){overlay.classList.add("hidden");document.getElementById("intro").classList.remove("hidden");},250);
-      };
-      var timer=setInterval(function(){
-        if(done){clearInterval(timer);return;}
-        var cap=progress<35?35:progress<60?60:progress<82?82:94;
-        if(progress<cap){
-          progress=Math.min(cap,progress+Math.max(.15,(cap-progress)*.045));
-          var message=stages.find(function(s){return progress<s[0];});
-          update(progress,message?message[1]:"Waiting for 3D engine…");
-        }
-      },100);
-      var timeout=setTimeout(function(){
-        if(done)return;
-        clearInterval(timer);
-        overlay.classList.add("hidden");
-        error.textContent="The 3D workshop did not finish loading. Please reload the page. Progress stopped at "+Math.floor(progress)+"%.";
-        error.classList.remove("hidden");
-      },30000);
-      function fail(message){
-        if(done)return;
-        clearInterval(timer);clearTimeout(timeout);
-        overlay.classList.add("hidden");
-        error.textContent="Game startup failed: "+message;
-        error.classList.remove("hidden");
-      }
-      window.addEventListener("error",function(event){fail(event.message||"Unknown script error");});
-      window.addEventListener("unhandledrejection",function(event){fail(String(event.reason));});
-      document.getElementById("beginBtn").addEventListener("click",function(){
-        if(window.sprayworksStart)window.sprayworksStart();
-      });
-    })();
-  </script>
-  <script type="module" src="./factory.bundle.js?v=4"></script>
-</body>
-</html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#132c33"><meta name="description" content="Lead a tiny maintenance crew. Clean a giant coolant pump, solve its repair puzzle, and bring the machine back to life."><title>SprayWorks — Tiny crew. Big machinery.</title><link rel="stylesheet" href="./crew.css?v=4"></head><body>
+<main id="app"><div id="loading" role="status"><div class="loading-card"><div class="eyebrow">SPRAYWORKS / MACHINE RESCUE</div><h2>Entering the machine…</h2><div class="loading-track"><span id="loadingFill"></span></div><p><b id="loadingPercent">5%</b> <span id="loadingStage">Downloading the game engine</span></p><button id="loadingRetry" hidden onclick="location.reload()">Reload game</button></div></div>
+<canvas id="scene" aria-label="Machine floor. Tap a worker to select them, then a job or open floor to give an order."></canvas>
+<div class="vignette"></div>
+<header class="topbar"><div class="brand"><svg viewBox="0 0 32 40" aria-hidden="true"><path d="M16 2C11 12 3 19 3 26a13 13 0 0 0 26 0C29 19 21 12 16 2Z"/><path d="M10 25a6 6 0 0 0 6 7"/></svg><div>SPRAY<span>WORKS</span><small>TINY CREW. BIG MACHINERY.</small></div></div><div class="top-actions"><span id="save-status">LOCAL SAVE</span><button id="sound" aria-label="Enable sound" title="Sound">♪</button><button id="help" aria-label="How to play">?</button><button id="pause" aria-label="Pause and give orders">Ⅱ</button></div></header>
+<section class="mission"><div class="eyebrow">SHIFT 01 <span>•</span> INSIDE PUMP 07</div><h1>Take it apart.<br>Make it shine.</h1><div class="mission-progress"><span id="mission-bar"></span></div><p id="next-step">Bolt → Unbolt the access cover</p><p id="mission-status">0 / 11 jobs complete</p><button id="jobs-toggle" aria-expanded="true">Job board <span>⌄</span></button><div id="jobs"></div></section>
+<div class="phase-strip" id="phases"><span>01 OPEN &amp; REMOVE</span><span>02 WASH</span><span>03 REFIT &amp; TEST</span></div><div id="labels" aria-label="Machine tasks"></div>
+<div class="camera-tools"><button id="zoom-in" aria-label="Zoom in">+</button><button id="zoom-out" aria-label="Zoom out">−</button><button id="home" aria-label="Center camera">⌖</button></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<aside id="task-panel" hidden></aside>
+<footer class="command-deck"><div class="crew-area"><div class="deck-caption"><span>YOUR CREW</span><span id="active-count">5 ready</span></div><div id="crew" role="group" aria-label="Select crew member"></div></div><div class="selected-area"><div class="selected-title"><strong id="selected-name">PIP</strong><span id="selected-role">SPRAYER</span></div><p id="order-hint">Start with Bolt: tap the access cover.</p><div class="order-buttons"><button id="stop">■ Stop</button><button id="focus">⌖ Find worker</button></div></div></footer>
+<div id="pause-banner" hidden>PAUSED · Give orders, then resume</div>
+<div id="renderer-note" hidden>TACTICAL VIEW · 3D unavailable on this browser</div>
+<dialog id="welcome"><div class="dialog-kicker">HAMBONE SOFTWARE / MACHINE RESCUE 0.4</div><div class="mini-crew"><span>◉</span><span>◉</span><span>◉</span><span>◉</span><span>◉</span></div><h2>Small crew.<br><em>Big comeback.</em></h2><p>You are inside a giant pump. Remove its oily parts, wash them on the service trays, then fit everything back together.</p><div class="tutorial"><div><b>01 / SELECT</b><span>Tap a worker or their crew card.</span></div><div><b>02 / COMMAND</b><span>Tap a job marker or an open floor tile.</span></div><div><b>03 / RESTORE</b><span>Remove → wash → refit → test.</span></div></div><p class="micro">Blue: sprayers · Orange: mechanics · Teal: vacuum<br>Drag to pan · Pinch / scroll to zoom · Pause to plan</p><button class="primary" id="begin">LET’S GET TO WORK <span>→</span></button><button class="text-button" id="reset">Start a fresh shift</button></dialog>
+<dialog id="victory"><div class="dialog-kicker">SHIFT COMPLETE</div><h2>Back in<br><em>business.</em></h2><p>The filter is clean, the rotor is aligned, and the cover is back in place. Your tiny crew has rebuilt the machine from the inside.</p><div class="victory-stats"><strong id="finish-time"></strong><span>11 jobs · 5 specialists · 1 comeback</span></div><button class="primary" id="keep-looking">WATCH THE MACHINE →</button><button class="text-button" id="replay">Work another shift</button></dialog>
+</main><script>
+(()=>{let ready=false;window.sprayworksProgress=(value,message)=>{document.getElementById('loadingFill').style.width=value+'%';document.getElementById('loadingPercent').textContent=value+'%';document.getElementById('loadingStage').textContent=message;};window.sprayworksReadyForPlay=()=>{ready=true;window.sprayworksProgress(100,'Crew ready');document.getElementById('loading').hidden=true;};function fail(message){if(ready)return;document.getElementById('loadingStage').textContent=message;document.getElementById('loadingRetry').hidden=false;}window.addEventListener('error',e=>fail('Startup failed: '+e.message));window.addEventListener('unhandledrejection',e=>fail('Startup failed: '+String(e.reason)));setTimeout(()=>{if(!ready)fail('Still loading. Check your connection, or reload to try again.');},30000);})();
+</script><script type="module" src="./factory.bundle.js?v=5"></script></body></html>

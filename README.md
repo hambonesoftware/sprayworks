@@ -1,72 +1,37 @@
-# SprayWorks — Factory Crew
+# SprayWorks: Machine Rescue
 
-A miniature 3D factory-cleaning and machine-repair strategy puzzle from Hambone Software, built with Babylon.js for static GitHub Pages hosting.
+A light RTS inside a giant machine. Command five tiny workers to take out dirty parts, clean them, and rebuild the mechanism. Play: https://hambonesoftware.github.io/sprayworks/
 
-## Gameplay
+## Pump 07: inside the casing
 
-Command a crew of five miniature specialists in an isometric factory:
+The level is an open cutaway of one pump, with curved inner walls, oversized threads, cast channels, a giant gasket, an exposed rotor seat and removable components. The old factory-floor stage has been replaced.
 
-- **Pip and Mox (washers):** clean the dirty intake, filter, and exhaust.
-- **Tug (hauler):** remove both sludge piles and return waste to the collection bin.
-- **Bolt (mechanic):** install the bearing, coupling, and impeller in order.
-- **Lux (technician):** restart the repaired pump to win.
+1. **Open & remove.** Use an orange mechanic to unbolt the access cover. Extract the filter and rotor. Mechanics carry the parts to service trays inside the casing.
+2. **Wash.** Use the two blue sprayers on the removed parts and empty chamber. Mop, the teal vacuum operator, collects the loosened oil.
+3. **Refit & test.** Return the clean filter and rotor to their slots. Turn the rotor arrow to match the housing's 90° mark, replace the cover, and test the rebuilt pump.
 
-Select a worker from the crew bar or tap the 3D character, then tap a highlighted task marker or a work order. Tap a floor tile to move the selected worker. Click **Assign next job** if you want a matching crew member automatically assigned to the next unlocked work order. You can only assign work to a worker with the appropriate specialization.
-
-The workers navigate around the pump with a deterministic A* grid. Cleaning and installation take time, and sludge must physically be carried to the waste bin. Tasks unlock when prerequisites are complete.
+Tasks show their prerequisites. The job board displays the current phase, and the next-step line explains what to do. The machine cannot be closed with a misaligned rotor or restarted with missing parts. Testing a faulty assembly gives instructions without resetting progress.
 
 ## Controls
 
-- Touch: tap a crew member, task, or floor location; use the camera buttons to rotate or zoom.
-- Mouse: left-click to command; use the camera buttons, scroll wheel to zoom, or right-button drag to orbit.
-- Keyboard: 1 through 5 selects a worker, Space pauses, R restarts.
-- Pause, help, mission restart, and camera controls appear on the screen.
+Tap a worker or crew card, then tap a part, task marker, job-board order, or open floor. Workers find paths and complete their orders. Drag to pan; pinch or scroll to zoom; use the camera buttons to zoom/center. Pause to issue orders without time advancing. Keys 1–5 select crew, Space pauses, S stops, Escape closes task details. Sound is opt-in.
 
-## GitHub Pages
+Progress and positions save locally. Returning clears in-flight orders but retains completed work; interrupted part deliveries can be reassigned. Clearing site data removes the save. Use Help → Start a fresh shift to reset.
 
-Settings → Pages → Build and deployment → **GitHub Actions**.
+## Build and deployment
 
-The workflow installs pinned Babylon.js / esbuild packages, runs simulation tests, bundles the game into a static folder, and deploys it when changes land on the main branch. External runtime CDNs, backend services, user accounts and analytics are not required.
+Node 22 recommended. `npm ci`, `npm run check`, `npm test`, then `npm run build`. Serve the generated `public/` folder. The existing GitHub Actions workflow builds and deploys main to GitHub Pages. Legacy spray physics remains at `legacy.html`.
 
-Primary game: https://hambonesoftware.github.io/sprayworks/
+Babylon.js 9.33.1 uses explicit module imports. The production JS bundle is about 1.7 MB before compression. Startup reports real initialization milestones and reveals the start button only after the first frame. No runtime dependency downloads are required except optional Google Fonts (system fallbacks included).
 
-Original spray-gun / paddle-wheel experiment: https://hambonesoftware.github.io/sprayworks/legacy.html
+A fully playable Canvas tactical view is provided when the browser cannot initialize WebGL. The main scene is procedural 3D with simplified particles and grime deposits; it does not claim CFD, fluid dynamics, or generated concept-image fidelity. The five workers have three roles: two sprayers, two mechanics, one vacuum operator.
 
-These addresses require successful deployment and Pages to be enabled.
+## Source and checks
 
-## Local development
+- `src/simulation.js`: tasks, prerequisites, part delivery, pathfinding, alignment and persistence.
+- `src/world.js`: Babylon cutaway machine, removable components, tiny crew and effects.
+- `src/tactical.js`: no-WebGL fallback with the same state and controls.
+- `src/main.js` and `src/style.css`: touch input, staged job board, HUD and audio cues.
+- `factory.js`: current build entry point.
 
-Requires Node.js 22 or later:
-
-```sh
-npm install
-npm run check
-npm test
-npm run build
-python3 -m http.server 8080 -d public
-```
-
-Open http://localhost:8080 to play. On Windows, if python3 is unavailable, use a local static server to serve the public folder. Browser ES modules do not reliably work directly from file:// URLs.
-
-The build uses @babylonjs/core and esbuild to tree-shake and package the engine and game together. The original Three.js assets remain in vendor/ for the legacy experiment.
-
-## Structure
-
-- index.html / crew.css: touch-first interface and responsive heads-up display.
-- factory.js: Babylon.js factory environment, miniature crew, picking, camera, animations, task UI, mission completion.
-- crew-logic.js: independent grid navigation, task prerequisites, worker roles, hauling, time simulation.
-- crew-logic.test.js: automated pathfinding and end-to-end mission tests.
-- scripts/build.mjs: static bundle generation.
-- legacy.html / game.js / physics.js / style.css / vendor/three.module.js: preserved first experiment.
-
-## Technical boundaries
-
-This is a playable first prototype, not a fluid solver. Oil residue, cleaning, maintenance interactions and animated characters are stylized approximations. Workers use A* paths over a navigation grid and simple task-state animation; Babylon physics plugins and realistic hydraulic pressure simulation are not included. No paid models or external 3D assets are required. All characters and machinery are procedural.
-
-For performance, keep the render loop efficient and use physics only when introducing loose-parts interactions that justify it. Test visual performance and touch UX on real iPhone and iPad hardware before calling the device experience fully verified.
-
-## Privacy and licenses
-
-The game stores only an optional best completion time in local browser storage. It does not transmit personal data. Clearing site data clears that time.
-
-Babylon.js is licensed under Apache-2.0. The original experiment uses Three.js under the MIT license; see vendor/THREE-LICENSE.txt. Both dependencies are installed or served locally in the deployed site.
+The test suite includes the legacy simulation regressions plus new checks for reachability, dirty-part restrictions, physical delivery phases, full disassembly/reassembly, pause/stop, startup diagnostics, saved work, and Babylon scene construction/render traversal through NullEngine. NullEngine verifies scene logic, not GPU appearance. The available QA browser disables WebGL, so GPU rendering and performance still need device testing.

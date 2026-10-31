@@ -3,9 +3,10 @@ import { mkdir, cp, copyFile, writeFile, rm } from "node:fs/promises";
 const output="public";
 await rm(output,{recursive:true,force:true});
 await mkdir(output+"/vendor",{recursive:true});
-for(const name of ["index.html","crew.css","legacy.html","game.js","physics.js","style.css"]){
+for(const name of ["index.html","legacy.html","game.js","physics.js","style.css"]){
   await copyFile(name,output+"/"+name);
 }
+await copyFile("src/style.css",output+"/crew.css");
 await cp("vendor",output+"/vendor",{recursive:true});
 await build({
   entryPoints:["factory.js"],
@@ -20,4 +21,4 @@ await build({
   logLevel:"info"
 });
 await writeFile(output+"/.nojekyll","");
-console.log("Factory Crew and original SprayWorks ready for GitHub Pages.");
+console.log("Machine Rescue and original SprayWorks ready for GitHub Pages.");

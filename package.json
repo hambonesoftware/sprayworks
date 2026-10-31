@@ -1,11 +1,11 @@
 {
-  "name": "sprayworks-factory-crew",
+  "name": "sprayworks-machine-rescue",
   "private": true,
   "type": "module",
-  "description": "Babylon.js miniature factory cleaning and mechanical repair strategy puzzle.",
+  "description": "A tiny maintenance crew disassembles, washes and rebuilds the inside of a giant machine.",
   "scripts": {
-    "test": "node --test physics.test.js crew-logic.test.js",
-    "check": "node --check factory.js && node --check crew-logic.js && node --check game.js && node --check scripts/build.mjs",
+    "test": "node --test physics.test.js crew-logic.test.js tests/*.test.js",
+    "check": "node --check factory.js && node --check src/main.js && node --check src/world.js && node --check src/simulation.js && node --check scripts/build.mjs",
     "build": "node scripts/build.mjs"
   },
   "dependencies": {
