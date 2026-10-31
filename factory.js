@@ -239,7 +239,7 @@ for(const member of ROLES){
 const destination=torus("command cursor",0,.035,0,1.1,.055,mats.green);
 destination.isVisible=false;destination.isPickable=false;
 const floor=B.MeshBuilder.CreateGround("navigation floor",{width:17.7,height:11.65},scene);
-floor.position.y=.032;floor.isVisible=false;floor.isPickable=true;stamp(floor,"floor","ground");
+floor.position.y=.032;floor.isVisible=true;floor.visibility=.001;floor.material=mats.floor;floor.isPickable=true;stamp(floor,"floor","ground");
 
 let mission=createMission(),running=false,announcedWin=false,lastUi=0,toastTimer=0;
 const taskList=$("taskList"),crewList=$("crewList");
