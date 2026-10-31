@@ -1,40 +1,48 @@
-name: Deploy SprayWorks to GitHub Pages
+name: Build and deploy SprayWorks Factory Crew
 on:
   push:
+    branches: [main, factory-crew-prototype]
+  pull_request:
     branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
-  pages: write
-  id-token: write
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  deploy:
+  verify:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Validate simulation and syntax
+      - name: Install pinned dependencies
+        run: npm install --no-audit --no-fund
+      - name: Validate syntax and run gameplay tests
         run: |
-          node --check game.js
-          node --test physics.test.js
-      - name: Assemble website
-        run: |
-          mkdir -p public
-          cp index.html style.css game.js physics.js public/
-          cp -r vendor public/
-          touch public/.nojekyll
+          npm run check
+          npm test
+      - name: Build static game bundle
+        run: npm run build
       - uses: actions/configure-pages@v5
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
       - uses: actions/upload-pages-artifact@v3
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         with:
           path: public
-      - name: Publish
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/deploy-pages@v4
         id: deployment
-        uses: actions/deploy-pages@v4
