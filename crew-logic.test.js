@@ -72,3 +72,35 @@ test("pause freezes progress and moving workers",()=>{
   assert.equal(workerById(m,"pip").x,before);
   assert.equal(m.time,0);
 });
+
+test("trial: all five workers deploy concurrently and finish a complete mission",()=>{
+  const m=createMission();
+  assert.equal(assignTask(m,"pip","intake"),true);
+  assert.equal(assignTask(m,"mox","filter"),true);
+  assert.equal(assignTask(m,"tug","sludge-a"),false);
+  assert.equal(assignTask(m,"bolt","bearing"),false);
+  until(m,()=>taskById(m,"intake").status==="done"&&taskById(m,"filter").status==="done");
+  assert.equal(assignTask(m,"pip","outlet"),true);
+  assert.equal(assignTask(m,"tug","sludge-a"),true);
+  until(m,()=>taskById(m,"outlet").status==="done"&&taskById(m,"sludge-a").status==="done");
+  finish(m,"tug","sludge-b");
+  finish(m,"bolt","bearing");
+  finish(m,"bolt","coupling");
+  finish(m,"bolt","impeller");
+  finish(m,"lux","restart");
+  assert.equal(m.won,true);
+});
+test("trial: 50 randomized worker movements remain inside walkable space",()=>{
+  let seed=1984;
+  const random=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
+  for(let trial=0;trial<50;trial++){
+    const m=createMission();
+    const w=m.workers[trial%5];
+    orderMove(m,w.id,-8+random()*16,-5+random()*10);
+    for(let i=0;i<600&&w.state!=="idle";i++){
+      tickMission(m,.05);
+      assert.equal(isBlocked(w.x,w.z),false,"trial "+trial+" position "+w.x+","+w.z);
+    }
+    assert.equal(w.state,"idle","trial "+trial+" must reach destination");
+  }
+});
