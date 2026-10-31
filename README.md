@@ -1,44 +1,72 @@
-# SprayWorks — Paddle Power
+# SprayWorks — Factory Crew
 
-A browser-based 3D spray physics puzzle from Hambone Software. No build, account, external CDN, or paid service is required. Three.js is vendored with its MIT license.
+A miniature 3D factory-cleaning and machine-repair strategy puzzle from Hambone Software, built with Babylon.js for static GitHub Pages hosting.
 
-## Play
+## Gameplay
 
-1. Select MOVE and drag to reposition the gun left/right and forward/back. Expand Gun position & height for exact sliders. Select AIM and drag to steer without snapping. Fine slows adjustments; Spray lock frees your thumb. The Aim: wheel button aligns a starting shot.
-2. Hold SPRAY (or Space) to hit the outer red paddles. Momentum spins the wheel and its ratchet lifts the gate.
-3. Once the gate latches open, aim at the orange funnel. Aim: funnel provides a starting alignment.
-4. Fill the receiver to 75% before exhausting the supply. JET is easiest for the first attempt.
+Command a crew of five miniature specialists in an isometric factory:
 
-JET is precise; FAN spreads horizontally; CONE spreads in both axes. Pressure changes flow and launch speed. Free play gives unlimited fluid and opens the gate. View changes the camera. Sound is off until enabled. Restart resets the scene. Keyboard arrows control the selected mode; M selects Move, A selects Aim, Shift slows adjustments, 1/2/3 selects a nozzle, R restarts, and Escape pauses. The page prevents touch scrolling and releases the trigger on focus loss.
+- **Pip and Mox (washers):** clean the dirty intake, filter, and exhaust.
+- **Tug (hauler):** remove both sludge piles and return waste to the collection bin.
+- **Bolt (mechanic):** install the bearing, coupling, and impeller in order.
+- **Lux (technician):** restart the repaired pump to win.
+
+Select a worker from the crew bar or tap the 3D character, then tap a highlighted task marker or a work order. Tap a floor tile to move the selected worker. Click **Assign next job** if you want a matching crew member automatically assigned to the next unlocked work order. You can only assign work to a worker with the appropriate specialization.
+
+The workers navigate around the pump with a deterministic A* grid. Cleaning and installation take time, and sludge must physically be carried to the waste bin. Tasks unlock when prerequisites are complete.
+
+## Controls
+
+- Touch: tap a crew member, task, or floor location; use the camera buttons to rotate or zoom.
+- Mouse: left-click to command; use the camera buttons, scroll wheel to zoom, or right-button drag to orbit.
+- Keyboard: 1 through 5 selects a worker, Space pauses, R restarts.
+- Pause, help, mission restart, and camera controls appear on the screen.
 
 ## GitHub Pages
 
-Upload the complete contents of this folder to the `main` branch of a public repository, including `.github/workflows/pages.yml` and `vendor/`.
+Settings → Pages → Build and deployment → **GitHub Actions**.
 
-In repository **Settings → Pages → Build and deployment**, select **GitHub Actions** as the source. Run **Actions → Deploy SprayWorks to GitHub Pages → Run workflow** if needed. The workflow validates the simulation and publishes only runtime assets. Its deployment result contains the playable address. Relative asset paths support a repository subpath.
+The workflow installs pinned Babylon.js / esbuild packages, runs simulation tests, bundles the game into a static folder, and deploys it when changes land on the main branch. External runtime CDNs, backend services, user accounts and analytics are not required.
+
+Primary game: https://hambonesoftware.github.io/sprayworks/
+
+Original spray-gun / paddle-wheel experiment: https://hambonesoftware.github.io/sprayworks/legacy.html
+
+These addresses require successful deployment and Pages to be enabled.
 
 ## Local development
 
-Serve the folder using an HTTP static server, such as `python3 -m http.server 8080`, then visit `http://localhost:8080`. Opening `index.html` directly from a file manager does not support ES module imports reliably.
+Requires Node.js 22 or later:
 
-Run checks with `node --test physics.test.js` and `node --check game.js`. No npm install is needed.
+```sh
+npm install
+npm run check
+npm test
+npm run build
+python3 -m http.server 8080 -d public
+```
 
-## Simulation and scope
+Open http://localhost:8080 to play. On Windows, if python3 is unavailable, use a local static server to serve the public folder. Browser ES modules do not reliably work directly from file:// URLs.
 
-This first version includes a 3D workbench, pivoting gun, three spray patterns, 300 sampled droplets/second, gravity, swept gate and paddle collisions, momentum-based wheel torque, a lifting gate, funnel collection, visible receiver fill, floor splats, sound, challenge and sandbox modes.
+The build uses @babylonjs/core and esbuild to tree-shake and package the engine and game together. The original Three.js assets remain in vendor/ for the legacy experiment.
 
-The simulation runs at a fixed 120 Hz with capped frame catch-up. Particles are drawn in one GPU point-cloud draw call and capped at 5,200. Splash particles are visual only; liquid accounting occurs at emission and collection. Tank volume and funnel drainage are approximated. This is a game, not validated CFD. Surface coating, robot recording and a course editor are future features and are not present in this release.
+## Structure
 
-## Verification
+- index.html / crew.css: touch-first interface and responsive heads-up display.
+- factory.js: Babylon.js factory environment, miniature crew, picking, camera, animations, task UI, mission completion.
+- crew-logic.js: independent grid navigation, task prerequisites, worker roles, hauling, time simulation.
+- crew-logic.test.js: automated pathfinding and end-to-end mission tests.
+- scripts/build.mjs: static bundle generation.
+- legacy.html / game.js / physics.js / style.css / vendor/three.module.js: preserved first experiment.
 
-Eight automated tests cover closed-gate occlusion, a complete winnable challenge, torque differences between hub and tip, unlimited sandbox supply, exhausted-supply behavior, high-speed gate collision, moving emission origins, and bounded independent gun positions. All passed during development. A deterministic 17-second scripted run filled the receiver with approximately 33% supply remaining.
+## Technical boundaries
 
-Browser rendering and touch-device performance remain unverified: the available remote QA browser reported WebGL disabled and could not create a graphics context. Test on a WebGL 2-capable Safari/Chrome/Edge device before considering the visual experience validated.
+This is a playable first prototype, not a fluid solver. Oil residue, cleaning, maintenance interactions and animated characters are stylized approximations. Workers use A* paths over a navigation grid and simple task-state animation; Babylon physics plugins and realistic hydraulic pressure simulation are not included. No paid models or external 3D assets are required. All characters and machinery are procedural.
 
-## Privacy
+For performance, keep the render loop efficient and use physics only when introducing loose-parts interactions that justify it. Test visual performance and touch UX on real iPhone and iPad hardware before calling the device experience fully verified.
 
-No analytics or network calls. Only the best remaining-fluid score is stored locally when storage is available. Clearing website data removes it.
+## Privacy and licenses
 
-## Third-party license
+The game stores only an optional best completion time in local browser storage. It does not transmit personal data. Clearing site data clears that time.
 
-Three.js: see `vendor/THREE-LICENSE.txt`. All game geometry is procedural; no generated concept image is needed to run the game.
+Babylon.js is licensed under Apache-2.0. The original experiment uses Three.js under the MIT license; see vendor/THREE-LICENSE.txt. Both dependencies are installed or served locally in the deployed site.

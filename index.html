@@ -1,11 +1,81 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#101820"><meta name="description" content="SprayWorks — a 3D spray physics playground. Spin a paddle wheel, open the gate and fill the receiver."><title>SprayWorks • Hambone Software</title><link rel="stylesheet" href="style.css?v=2"></head>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101b2a">
+  <meta name="description" content="SprayWorks Factory Crew: command five miniature specialists, clean an industrial pump, rebuild it and bring it back to life in a 3D strategy puzzle.">
+  <title>SprayWorks: Factory Crew | Hambone Software</title>
+  <link rel="stylesheet" href="./crew.css?v=1">
+</head>
 <body>
-<main id="game" aria-label="SprayWorks 3D game"><canvas id="scene" aria-label="Drag on the workshop to aim your spray gun"></canvas>
-<header><div class="brand">SPRAY<span>WORKS</span><small>HAMBONE SOFTWARE / PHYSICS LAB 01</small></div><div class="tools"><button id="sound" aria-label="Toggle sound" aria-pressed="false">Sound off</button><button id="camera">View</button><button id="pause">Pause</button><button id="help" aria-label="Show instructions">?</button></div></header>
-<section class="mission"><div class="eyebrow" id="modeLabel">CHALLENGE / PADDLE POWER</div><h1 id="objective">01 — Power the wheel</h1><p id="hint">Aim near the red paddle tips. Hold SPRAY.</p><div class="meters"><label>SUPPLY <b id="supplyText">100%</b><meter id="supply" min="0" max="100" value="100"></meter></label><label id="progressLabel">GATE <b id="progressText">0%</b><meter id="progress" min="0" max="100" value="0"></meter></label></div><div id="result" role="status" aria-live="polite"></div></section>
-<div class="gun-controls"><div class="control-modes"><button id="moveMode" aria-pressed="true">✥ MOVE</button><button id="aimMode" aria-pressed="false">⊕ AIM</button><button id="fine" aria-pressed="false">Fine</button></div><p id="controlHint">Drag the scene to move the gun along the bench.</p><details><summary>Gun position &amp; height</summary><label>LEFT / RIGHT<input id="gunX" aria-label="Gun left right position" type="range" min="-5.5" max="5.5" step="0.02" value="-4.5"></label><label>NEAR / FAR<input id="gunZ" aria-label="Gun distance" type="range" min="3" max="6" step="0.02" value="6"></label><label>HEIGHT<input id="gunY" aria-label="Gun height" type="range" min="1.3" max="3.6" step="0.02" value="2.1"></label><button id="gunHome">Reset gun</button></details></div><div class="aimtips"><button id="sprayLock" aria-pressed="false">Spray lock</button><button id="aimWheel">Aim: wheel</button><button id="aimFunnel">Aim: funnel</button></div>
-<footer><div class="nozzles" role="group" aria-label="Nozzle pattern"><button class="selected" data-nozzle="jet" aria-pressed="true"><svg viewBox="0 0 60 25"><path d="M5 12H53"/></svg>JET</button><button data-nozzle="fan" aria-pressed="false"><svg viewBox="0 0 60 25"><path d="M5 12L53 2M5 12H53M5 12L53 23"/></svg>FAN</button><button data-nozzle="cone" aria-pressed="false"><svg viewBox="0 0 60 25"><path d="M5 12L48 3M5 12L48 22"/><ellipse cx="48" cy="12" rx="6" ry="10"/></svg>CONE</button></div><label class="pressure">PRESSURE <b id="pressureText">65%</b><input id="pressure" type="range" min="25" max="100" value="65" aria-label="Spray pressure"></label><button id="reset">Restart</button><button id="sandbox" aria-pressed="false">Free play</button><button id="spray">● SPRAY<small>HOLD / SPACE</small></button></footer>
-<div id="intro" class="veil"><section class="card"><div class="eyebrow">WELCOME TO THE WORKSHOP</div><h2>Make a splash.<br><em>Move a machine.</em></h2><p>Turn colored droplets into mechanical power.</p><ol><li><b>Spin the wheel.</b> Spray near the paddle tips to lift the gate.</li><li><b>Fill the receiver.</b> Aim into the orange funnel after the gate opens.</li><li><b>Make every drop count.</b> Reach 75% before your supply runs out.</li></ol><p class="subtle">MOVE: drag to reposition the gun. AIM: drag to steer the spray.<br>Fine slows adjustments. Spray lock frees your thumb.<br>Arrow keys control the selected mode; Shift is fine control.</p><button id="start" class="primary">ENTER WORKSHOP →</button><p class="subtle">Real 3D droplets and impact forces. Simplified fluid simulation.</p></section></div>
-<div id="error" hidden>Unable to start the 3D workshop. This game needs WebGL 2. Try a current Safari, Chrome, or Edge browser.</div>
-</main><script type="module" src="game.js?v=2"></script></body></html>
+  <main id="app">
+    <canvas id="renderCanvas" aria-label="3D factory mission. Tap workers to select, tap tasks to assign, or tap the floor to move." tabindex="0"></canvas>
+    <header class="topbar">
+      <div class="identity"><div class="logo">SPRAY<span>WORKS</span></div><div class="sublogo">FACTORY CREW <span>•</span> HAMBONE SOFTWARE</div></div>
+      <div class="top-actions">
+        <button id="helpBtn" title="How to play" aria-label="How to play">?</button>
+        <button id="pauseBtn" title="Pause game">Pause</button>
+        <button id="restartBtn" title="Restart mission">Restart</button>
+      </div>
+    </header>
+    <section class="mission" aria-label="Mission progress">
+      <div class="kicker">MISSION 01 / PUMP RESCUE</div>
+      <h1 id="objective">Clean the machinery</h1>
+      <p id="objectiveDetail">Select a washer, then tap a glowing grime marker.</p>
+      <div class="progress-track"><span id="progressFill"></span></div>
+      <div class="mission-stats">
+        <span>SOAP <b id="cleanCount">0/3</b></span>
+        <span>WASTE <b id="wasteCount">0/2</b></span>
+        <span>REPAIR <b id="repairCount">0/3</b></span>
+      </div>
+      <div class="mission-clock">OPERATION TIME <b id="timeValue">00:00</b></div>
+    </section>
+    <aside class="tasks" aria-label="Active orders">
+      <div class="panel-title"><span>WORK ORDERS</span><small id="taskCounter">0 / 9</small></div>
+      <div id="taskList" class="task-list"></div>
+      <p class="task-help">Tap an order to send the matching specialist. Locked orders unlock as you repair the pump.</p>
+    </aside>
+    <div class="camera-controls" aria-label="Camera controls">
+      <button id="cameraLeft" aria-label="Rotate camera left">↶</button>
+      <button id="cameraRight" aria-label="Rotate camera right">↷</button>
+      <button id="cameraIn" aria-label="Zoom in">+</button>
+      <button id="cameraOut" aria-label="Zoom out">−</button>
+    </div>
+    <section class="crew-panel" aria-label="Crew">
+      <div class="crew-heading"><div><small>YOUR MINIATURE RESPONSE TEAM</small><strong>Choose a worker, then give an order</strong></div><span id="crewStatus">5 workers available</span></div>
+      <div id="crewList" class="crew-list"></div>
+      <div class="command-row">
+        <div id="commandInfo">Pip selected · tap the floor to move</div>
+        <button id="selectBest">Assign next job</button>
+      </div>
+    </section>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <div id="intro" class="overlay">
+      <div class="intro-card">
+        <div class="kicker">WELCOME TO THE LITTLE BIG WORKSHOP</div>
+        <h2>Tiny crew.<br><em>Massive mess.</em></h2>
+        <p>A factory pump has seized under layers of oil and grime. Send in five pint-sized specialists to clean it, collect the waste, reinstall its missing parts, and restart the line.</p>
+        <div class="tutorial-grid">
+          <div><b>01</b><strong>SELECT</strong><span>Tap one of your five workers.</span></div>
+          <div><b>02</b><strong>COMMAND</strong><span>Tap the floor to move, or a glowing task to work.</span></div>
+          <div><b>03</b><strong>REBUILD</strong><span>Clean → haul → repair → restart.</span></div>
+        </div>
+        <button id="beginBtn" class="primary">DEPLOY THE CREW</button>
+        <div class="intro-footer">Mouse or touch • Babylon.js 3D • No account required</div>
+      </div>
+    </div>
+    <div id="win" class="overlay hidden">
+      <div class="intro-card won">
+        <div class="kicker">MISSION COMPLETE</div>
+        <h2>Machine <em>restored!</em></h2>
+        <p id="winSummary">Your factory crew got the line running again.</p>
+        <button id="againBtn" class="primary">PLAY AGAIN</button>
+        <a href="./legacy.html">Try the original spray physics lab</a>
+      </div>
+    </div>
+    <div id="error" class="error hidden" role="alert"></div>
+  </main>
+  <script type="module" src="./factory.bundle.js?v=1"></script>
+</body>
+</html>
