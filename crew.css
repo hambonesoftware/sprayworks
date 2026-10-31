@@ -1,0 +1,85 @@
+:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#f4f9fa;background:#0b1824;font-synthesis:none;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none}
+button,a{font:inherit}button{cursor:pointer;touch-action:manipulation;border:1px solid #476079;background:#1c3547;color:#eafaff;border-radius:11px;padding:10px 13px;font-weight:800;transition:transform .15s,background .15s,border-color .15s}
+button:hover{background:#285369}button:active{transform:scale(.96)}button:focus-visible,a:focus-visible{outline:3px solid #6cf6fc;outline-offset:3px}
+#app{position:relative;width:100%;height:100dvh;overflow:hidden;isolation:isolate}
+#renderCanvas{display:block;width:100%;height:100%;touch-action:none;outline:none;user-select:none;-webkit-user-select:none}
+.topbar{pointer-events:none;position:absolute;top:max(17px,env(safe-area-inset-top));left:24px;right:24px;display:flex;justify-content:space-between;align-items:flex-start;z-index:4}
+.logo{font-weight:1000;font-size:clamp(22px,2.5vw,37px);line-height:1;letter-spacing:-1.8px;font-style:italic;text-shadow:0 3px 8px #041521}.logo span{color:#ffd34f}
+.sublogo{font-size:9px;letter-spacing:2px;font-weight:900;margin-top:6px;color:#b6d2dd}.sublogo span{color:#ffd24b}
+.top-actions{display:flex;gap:7px;pointer-events:auto}
+.top-actions button{background:#102436d9;font-size:12px;backdrop-filter:blur(10px)}
+.mission{position:absolute;top:102px;left:24px;width:278px;padding:15px 16px;border:1px solid #56738a99;background:linear-gradient(145deg,#132d40ec,#0d2031d9);border-radius:16px;box-shadow:0 18px 35px #0005;z-index:3;pointer-events:none}
+.kicker{font-size:10px;letter-spacing:1.9px;font-weight:950;color:#ffd558}
+.mission h1{margin:9px 0 4px;font-size:23px;line-height:1.2;letter-spacing:-.7px}
+.mission p{margin:0;color:#c5dce3;font-size:12px;line-height:1.5}
+.progress-track{margin-top:15px;background:#071c2a;border:1px solid #466878;border-radius:15px;height:10px;overflow:hidden}
+.progress-track span{display:block;width:0%;height:100%;background:linear-gradient(90deg,#19c0d8,#ffe066);transition:width .25s}
+.mission-stats{display:flex;justify-content:space-between;gap:7px;margin-top:13px;font-size:9px;font-weight:900;color:#b7d1da;letter-spacing:.4px}
+.mission-stats b{display:block;font-size:16px;color:#fff;letter-spacing:0;margin-top:2px}
+.mission-clock{padding-top:11px;margin-top:10px;border-top:1px solid #38566b;font-size:9px;letter-spacing:1px;color:#a2b9c6;font-weight:800}
+.mission-clock b{float:right;color:#e8f6ff;letter-spacing:1px}
+.tasks{position:absolute;top:101px;right:24px;width:275px;max-height:min(66vh,510px);display:flex;flex-direction:column;background:#102639e8;border:1px solid #4d6a7c;border-radius:16px;padding:13px;z-index:3;box-shadow:0 20px 35px #0006;backdrop-filter:blur(10px)}
+.panel-title{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:#f8d76a;letter-spacing:1.2px;font-weight:950;padding:2px 3px 10px}
+.panel-title small{font-size:11px;color:#b6cdda}
+.task-list{overflow-y:auto;overscroll-behavior:contain;min-height:0;display:flex;flex-direction:column;gap:6px}
+.task-entry{display:flex;gap:9px;text-align:left;align-items:center;width:100%;padding:10px 9px;background:#1e374b;border:1px solid #385469;border-radius:10px}
+.task-entry strong{font-size:11px;display:block;line-height:1.25}
+.task-entry small{font-size:9px;color:#c3d7db;display:block;margin-top:4px;font-weight:600}
+.task-entry .task-icon{font-size:18px;width:29px;text-align:center;flex:0 0 29px}
+.task-entry.locked{opacity:.44}.task-entry.complete{border-color:#40d6a0;background:#193f3c}.task-entry.active{border-color:#ffd86a;background:#544024}
+.task-entry .bar{width:100%;height:3px;background:#183044;border-radius:4px;margin-top:5px;overflow:hidden}.task-entry .bar span{height:100%;background:#ffd85b;display:block}
+.task-help{font-size:10px;line-height:1.5;color:#aac5ce;margin:9px 3px 0}
+.camera-controls{position:absolute;right:318px;bottom:185px;display:flex;gap:5px;z-index:3}
+.camera-controls button{background:#0e2636de;font-size:20px;width:40px;height:40px;padding:0;border-radius:11px}
+.crew-panel{position:absolute;bottom:max(14px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:min(800px,calc(100% - 44px));background:linear-gradient(160deg,#16344beF,#0a2030f5);border:1px solid #54758b;border-radius:19px;box-shadow:0 12px 50px #0009;z-index:4;padding:13px 15px 12px;backdrop-filter:blur(12px)}
+.crew-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px}
+.crew-heading small{font-size:9px;letter-spacing:1.6px;color:#e2c36a;font-weight:850;display:block}
+.crew-heading strong{font-size:13px;display:block;margin-top:3px}
+#crewStatus{font-size:10px;color:#a9d7e5;white-space:nowrap}
+.crew-list{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.crew{padding:8px 6px;display:flex;align-items:center;justify-content:center;gap:8px;border:1px solid #42657c;background:#1d3b4d;min-width:0;min-height:58px}
+.crew .portrait{width:31px;height:34px;flex:0 0 31px;display:block;border-radius:9px 9px 12px 12px;position:relative;box-shadow:inset 0 -10px #0002}
+.crew .portrait:before{content:"";position:absolute;left:6px;right:6px;top:6px;height:9px;background:#16313a;border-radius:7px;box-shadow:inset 0 2px #c4ffff}
+.crew .portrait:after{content:"";position:absolute;left:11px;right:11px;bottom:4px;height:4px;background:#ffffff99;border-radius:4px}
+.crew .crew-label{min-width:0;text-align:left}.crew .crew-label strong{display:block;font-size:12px}.crew .crew-label small{display:block;font-size:9px;color:#a7c4d2;font-weight:650;margin-top:3px;overflow:hidden;text-overflow:ellipsis}
+.crew.selected{border-color:#ffe375;background:#4f452c;box-shadow:0 0 0 1px #ffe37560}
+.crew.busy .crew-label small{color:#ffdc79}
+.command-row{margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:35px}
+#commandInfo{font-size:11px;color:#d2e5e8;min-width:0}
+#selectBest{background:#ffce47;color:#25333c;border-color:#ffe186;font-size:11px;padding:9px 13px;white-space:nowrap}
+#toast{position:absolute;z-index:8;top:26%;left:50%;transform:translateX(-50%) translateY(-8px);background:#172f41ed;color:#fff6c5;padding:11px 16px;border:1px solid #fff18b;border-radius:12px;box-shadow:0 10px 30px #0008;font-weight:800;font-size:12px;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;max-width:min(90vw,420px);text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.overlay{position:absolute;inset:0;z-index:20;background:#05121ade;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(13px)}
+.hidden{display:none!important}
+.intro-card{background:linear-gradient(130deg,#1d4556,#142638 70%);border:1px solid #6f9a9d;border-radius:23px;box-shadow:0 25px 80px #000b;padding:30px;width:min(550px,100%);max-height:94vh;overflow-y:auto;overscroll-behavior:contain}
+.intro-card h2{font-size:clamp(36px,5vw,56px);line-height:1.03;letter-spacing:-2px;margin:12px 0 15px}
+.intro-card h2 em{font-style:normal;color:#ffdc57}
+.intro-card p{font-size:14px;line-height:1.6;color:#c8dfe4}
+.tutorial-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:20px 0}
+.tutorial-grid>div{background:#0b283a;border:1px solid #396477;border-radius:12px;padding:13px;min-height:105px}
+.tutorial-grid b{font-size:18px;color:#ffdb56;display:block}
+.tutorial-grid strong{font-size:12px;display:block;margin:8px 0 5px}
+.tutorial-grid span{font-size:10px;color:#bcd9df;line-height:1.4;display:block}
+.primary{background:linear-gradient(#ffe57a,#f9c847);color:#172b36;border:1px solid #fff2a8;font-size:15px;width:100%;padding:16px;box-shadow:0 5px 0 #84672a}
+.intro-footer{font-size:10px;color:#9ec2cf;margin-top:18px;text-align:center}
+.won{text-align:center}.won a{display:block;color:#c2f2fb;font-size:12px;margin-top:22px}
+.error{position:absolute;inset:15% 10%;z-index:50;background:#431d25;border:1px solid #d77f7f;padding:25px;border-radius:15px;overflow:auto}
+@media(max-width:1050px){.camera-controls{right:16px;bottom:225px}.tasks{width:240px}.mission{width:245px}.crew-panel{width:calc(100% - 30px)}}
+@media(max-width:690px){
+ .topbar{top:max(10px,env(safe-area-inset-top));left:12px;right:12px}.logo{font-size:24px}.sublogo{font-size:7px;letter-spacing:1px}.top-actions{gap:4px}.top-actions button{padding:7px;font-size:10px}
+ .mission{top:66px;left:9px;width:220px;padding:10px}.mission h1{font-size:17px}.mission p{font-size:10px}.kicker{font-size:8px}.mission-stats{margin-top:8px}.mission-stats b{font-size:13px}.progress-track{margin-top:9px}.mission-clock{margin-top:6px;padding-top:7px}
+ .tasks{left:9px;right:9px;top:auto;bottom:210px;width:auto;max-height:135px;padding:8px 9px;border-radius:12px}
+ .panel-title{font-size:10px;padding-bottom:5px}.task-list{display:flex;flex-direction:row;overflow-x:auto;overflow-y:hidden;gap:5px;min-height:70px;padding-bottom:3px}
+ .task-entry{min-width:145px;width:145px;flex-shrink:0;padding:6px;gap:4px}.task-entry strong{font-size:10px}.task-entry small{font-size:8px}.task-entry .task-icon{width:21px;flex-basis:21px;font-size:15px}.task-help{display:none}
+ .camera-controls{right:9px;top:153px;bottom:auto;flex-direction:column;gap:4px}.camera-controls button{width:30px;height:30px;font-size:15px}
+ .crew-panel{bottom:max(7px,env(safe-area-inset-bottom));left:7px;transform:none;width:calc(100% - 14px);padding:9px;border-radius:14px}
+ .crew-heading{margin-bottom:7px}.crew-heading small{font-size:8px}.crew-heading strong{font-size:10px}#crewStatus{font-size:9px}
+ .crew-list{gap:4px}.crew{flex-direction:column;gap:3px;padding:5px 2px;min-height:67px}.crew .portrait{width:26px;height:25px;flex:0 0 25px}.crew .crew-label{text-align:center}.crew .crew-label strong{font-size:10px}.crew .crew-label small{font-size:8px}
+ .command-row{margin-top:7px}#commandInfo{font-size:10px}#selectBest{font-size:10px;padding:7px}
+ .intro-card{padding:19px}.tutorial-grid>div{padding:8px;min-height:95px}.tutorial-grid span{font-size:9px}
+}
+@media(max-height:610px) and (min-width:691px){.mission{top:65px}.tasks{top:65px;max-height:50vh}.crew-panel{bottom:5px;padding:8px}.camera-controls{bottom:175px}}
+@media(max-width:690px) and (max-height:630px){.mission{top:54px;width:200px}.mission-clock{display:none}.tasks{bottom:125px;max-height:85px}.task-list{min-height:50px}.crew-heading{display:none}.crew-panel{padding:5px}.crew{min-height:47px;flex-direction:row}.crew .portrait{height:22px;flex-basis:22px;width:22px}.command-row{margin-top:3px}.camera-controls{top:110px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
