@@ -2,12 +2,15 @@ import * as B from "@babylonjs/core";
 import { createMission,ROLES,TASKS,taskById,workerById,selectWorker,orderMove,assignTask,tickMission,isReady,getSummary,clamp } from "./crew-logic.js";
 
 const $=id=>document.getElementById(id);
+const progress=(value,message)=>window.sprayworksProgress?.(value,message);
+progress(36,"Initializing 3D renderer…");
 const canvas=$("renderCanvas");
 let engine;
 try{engine=new B.Engine(canvas,true,{stencil:true,preserveDrawingBuffer:false,antialias:true,powerPreference:"high-performance"});}
 catch(error){$("error").textContent="Your browser could not start the 3D workshop. Enable WebGL or try an up-to-date browser."; $("error").classList.remove("hidden"); throw error;}
 engine.setHardwareScalingLevel(Math.max(1.25,(window.devicePixelRatio||1)/1.15));
 const scene=new B.Scene(engine);
+progress(54,"Building the factory…");
 scene.clearColor=new B.Color4(.045,.105,.15,1);
 scene.fogMode=B.Scene.FOGMODE_EXP2;
 scene.fogDensity=.012;
@@ -177,6 +180,7 @@ cube("service control display",6.3,1.47,-3.93,1.03,.63,.1,mats.light);
 for(let i=0;i<3;i++)orb("tower button",5.94+i*.35,.73,-3.93,.11,[mats.red,mats.yellow,mats.green][i]);
 sign("RESTART",6.3,2.6,-3.35,2.2);
 
+progress(75,"Placing work orders…");
 const taskViews=new Map();
 const icons={clean:"💦",haul:"🛢️",repair:"🔧",restart:"⚡"};
 for(const t of TASKS){
@@ -207,6 +211,7 @@ for(const t of TASKS){
   for(const m of [ring,halo,flag,signMesh,...physical])stamp(m,"task",t.id);
   taskViews.set(t.id,{root,ring,halo,flag,sign:signMesh,physical});
 }
+progress(87,"Deploying miniature crew…");
 const crewViews=new Map();
 for(const member of ROLES){
   const root=new B.TransformNode("worker "+member.id,scene);
@@ -432,6 +437,9 @@ function frame(){
   }
   scene.render();
 }
+progress(97,"Rendering first frame…");
+scene.render();
+window.sprayworksReadyForPlay?.();
 engine.runRenderLoop(frame);
 window.addEventListener("resize",()=>engine.resize());
 document.addEventListener("visibilitychange",()=>{if(document.hidden&&running&&!mission.won){mission.paused=true;$("pauseBtn").textContent="Resume";}});
