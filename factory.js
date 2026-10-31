@@ -1,8 +1,7 @@
+import * as B from "@babylonjs/core";
 import { createMission,ROLES,TASKS,taskById,workerById,selectWorker,orderMove,assignTask,tickMission,isReady,getSummary,clamp } from "./crew-logic.js";
 
 const $=id=>document.getElementById(id);
-const B=window.BABYLON;
-if(!B){$("error").textContent="The Babylon.js engine was not loaded. Please reload the workshop."; $("error").classList.remove("hidden"); throw new Error("Babylon.js unavailable");}
 const canvas=$("renderCanvas");
 let engine;
 try{engine=new B.Engine(canvas,true,{stencil:true,preserveDrawingBuffer:false,antialias:true,powerPreference:"high-performance"});}
@@ -86,7 +85,9 @@ function pipe(name,a,b,diameter,mat){
   const first=new B.Vector3(...a),last=new B.Vector3(...b),direction=last.subtract(first);
   const mesh=B.MeshBuilder.CreateCylinder(name,{diameter,height:direction.length(),tessellation:20},scene);
   mesh.position=first.add(last).scale(.5);
-  mesh.rotationQuaternion=B.Quaternion.FromUnitVectorsToRef(B.Axis.Y,direction.normalize(),new B.Quaternion());
+  const rotation=new B.Quaternion();
+  B.Quaternion.FromUnitVectorsToRef(B.Axis.Y,direction.normalize(),rotation);
+  mesh.rotationQuaternion=rotation;
   mesh.material=mat;addShadow(mesh);return mesh;
 }
 function sign(text,x,y,z,w=3){
@@ -240,7 +241,7 @@ destination.isVisible=false;destination.isPickable=false;
 const floor=B.MeshBuilder.CreateGround("navigation floor",{width:17.7,height:11.65},scene);
 floor.position.y=.032;floor.isVisible=false;floor.isPickable=true;stamp(floor,"floor","ground");
 
-let mission=createMission(),running=false,announcedWin=false,lastUi=0,toastTimer=0,autoplay=false;
+let mission=createMission(),running=false,announcedWin=false,lastUi=0,toastTimer=0;
 const taskList=$("taskList"),crewList=$("crewList");
 function showToast(message){
   $("toast").textContent=message;$("toast").classList.add("show");toastTimer=performance.now()+2200;
