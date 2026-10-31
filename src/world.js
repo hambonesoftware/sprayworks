@@ -8,6 +8,8 @@ import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight.js';
 import { ShadowGenerator } from '@babylonjs/core/Lights/Shadows/shadowGenerator.js';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial.js';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder.js';
+import pumpMeshes from './pump-meshes.json' with { type: 'json' };
+import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData.js';
 import { Mesh } from '@babylonjs/core/Meshes/mesh.js';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode.js';
 import { DynamicTexture } from '@babylonjs/core/Materials/Textures/dynamicTexture.js';
@@ -30,6 +32,12 @@ export function createWorld(canvas,game,providedEngine=null){
   const statics=[];
   function finish(mesh,m,pos,parent=null,dynamic=false){mesh.material=m;if(pos)mesh.position.set(...pos);if(parent)mesh.parent=parent;mesh.isPickable=false;mesh.receiveShadows=true;if(!parent&&!dynamic)statics.push(mesh);return mesh;}
   function box(name,w,h,d,m,pos,parent=null,dynamic=false){return finish(MeshBuilder.CreateBox(name,{width:w,height:h,depth:d},scene),m,pos,parent,dynamic);}
+  function cadPart(name,material,parent=null){
+    const data=pumpMeshes[name],mesh=new Mesh('CC0 pump '+name,scene),vertex=new VertexData();
+    vertex.positions=data.positions;vertex.indices=data.indices;vertex.normals=[];vertex.uvs=new Array(data.positions.length/3*2).fill(0);
+    VertexData.ComputeNormals(vertex.positions,vertex.indices,vertex.normals);vertex.applyToMesh(mesh);
+    return finish(mesh,material,[0,0,0],parent);
+  }
   function sphere(name,d,m,pos,parent=null,dynamic=false){return finish(MeshBuilder.CreateSphere(name,{diameter:d,segments:10},scene),m,pos,parent,dynamic);}
   function cyl(name,r,h,m,pos,parent=null,dynamic=false,segments=24){return finish(MeshBuilder.CreateCylinder(name,{diameter:r*2,height:h,tessellation:segments},scene),m,pos,parent,dynamic);}
   function ring(name,r,t,m,pos,parent=null,dynamic=false){return finish(MeshBuilder.CreateTorus(name,{diameter:r*2,thickness:t,tessellation:40},scene),m,pos,parent,dynamic);}
@@ -43,13 +51,8 @@ export function createWorld(canvas,game,providedEngine=null){
   const enamel=cyl('enamel sump floor',7.65,.12,teal,[0,-.05,0],null,false,64);enamel.scaling.x=1.4;
   const gasket=ring('giant black O-ring',8,.24,black,[0,.03,0]);gasket.scaling.x=1.4;
   const rim=ring('machined rim',8.2,.20,chrome,[0,.08,0]);rim.scaling.x=1.4;
-  // A high rear cutaway wall reads as the INSIDE of a shell; the front is cut away.
-  for(let i=0;i<28;i++){
-    const a=Math.PI+i/27*Math.PI,x=Math.cos(a)*10.7,z=Math.sin(a)*7.4;
-    const segment=box('curved inner casing wall',1.35,2.5,.5,yellow,[x,1.15,z]);segment.rotation.y=-a+Math.PI/2;
-    const lining=box('inner turquoise lining',1.15,1.85,.16,teal,[x*.967,1.02,z*.967]);lining.rotation.y=-a+Math.PI/2;
-    if(i%3===0){const rib=box('cast strengthening rib',.2,2.65,.8,steel,[x*.96,1.18,z*.96]);rib.rotation.y=-a+Math.PI/2;}
-  }
+  // Imported CC0 volute: shallow axial section opens the actual pump cavity.
+  const importedCasing=cadPart('casing',yellow);importedCasing.position.y=-.1;
   for(let i=0;i<22;i++){const a=i/22*Math.PI*2,x=Math.cos(a)*10.9,z=Math.sin(a)*7.75;
     cyl('oversized hex bolt',.28,.23,chrome,[x,.27,z],null,false,6);cyl('bolt socket',.11,.025,dark,[x,.4,z],null,false,6);
   }
@@ -76,17 +79,13 @@ export function createWorld(canvas,game,providedEngine=null){
   cyl('rotor bearing seat',2.2,.2,black,[2,.12,-2]);ring('seat lip',2.2,.18,chrome,[2,.28,-2]);
   cyl('exposed shaft',.24,1.1,steel,[2,.55,-2]);
   const impeller=new TransformNode('removable impeller',scene);
-  const rotorDisk=cyl('rotor disk',1.8,.18,steel,[0,.22,0],impeller);
-  cyl('rotor hub',.43,.65,chrome,[0,.48,0],impeller);
-  for(let i=0;i<8;i++){const a=i/8*Math.PI*2;const blade=box('curved impeller blade',.32,.46,1.25,yellow,[Math.cos(a)*1.05,.5,Math.sin(a)*1.05],impeller);blade.rotation.y=-a+.5;}
+  cadPart('impeller',chrome,impeller);
   const rotorMark=box('rotor blue arrow',.14,.04,.65,glow,[0,.77,1.3],impeller);
   box('90 degree matching arrow',.65,.05,.17,glow,[4.4,.32,-2]);
   label('90° →',1.3,.45,[4.6,.13,-1],Math.PI/2,'#173f4a','#75eef9');
   // The access guard is removed as a real object, then replaced with a window.
   const guard=new TransformNode('access cover',scene);
-  box('cover plate',6,.15,1.65,teal,[0,0,0],guard);
-  for(const x of [-2.65,2.65])for(const z of [-.55,.55]){cyl('cover fastener',.16,.15,chrome,[x,.15,z],guard,null,6);}
-  for(let x=-2;x<=2;x+=.5)box('cover slots',.16,.03,1.1,dark,[x,.1,0],guard);
+  const importedCover=cadPart('cover',teal,guard);importedCover.scaling.set(1,.6,.6);
   // Trays are attached inside the machine's service opening, not an exterior workshop.
   box('blue wash tray',3.3,.35,1.7,steel,[-6,.18,3.6]);box('blue tray insert',3,.06,1.4,teal,[-6,.4,3.6]);
   for(const x of [-7.65,-4.35])box('tray raised edge',.1,.25,1.7,glow,[x,.45,3.6]);

@@ -35,3 +35,7 @@ A fully playable Canvas tactical view is provided when the browser cannot initia
 - `factory.js`: current build entry point.
 
 The test suite includes the legacy simulation regressions plus new checks for reachability, dirty-part restrictions, physical delivery phases, full disassembly/reassembly, pause/stop, startup diagnostics, saved work, and Babylon scene construction/render traversal through NullEngine. NullEngine verifies scene logic, not GPU appearance. The available QA browser disables WebGL, so GPU rendering and performance still need device testing.
+
+## Open machine asset
+
+The 3D volute casing, removable front cover, and impeller now use the CC0 Innerscene pump assembly. See `assets/source/README.md` for provenance, license, and conversion instructions. The crew space, filter, trays, and puzzle are exaggerated gameplay additions. The Canvas fallback remains a simplified illustration.
