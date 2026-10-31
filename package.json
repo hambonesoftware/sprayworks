@@ -1,1 +1,17 @@
-{"name":"sprayworks","private":true,"type":"module","scripts":{"test":"node --test physics.test.js"}}
+{
+  "name": "sprayworks-factory-crew",
+  "private": true,
+  "type": "module",
+  "description": "Babylon.js miniature factory cleaning and mechanical repair strategy puzzle.",
+  "scripts": {
+    "test": "node --test physics.test.js crew-logic.test.js",
+    "check": "node --check factory.js && node --check crew-logic.js && node --check game.js && node --check scripts/build.mjs",
+    "build": "node scripts/build.mjs"
+  },
+  "dependencies": {
+    "@babylonjs/core": "9.33.1"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}
