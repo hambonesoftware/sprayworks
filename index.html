@@ -61,7 +61,7 @@
           <div><b>02</b><strong>COMMAND</strong><span>Tap the floor to move, or a glowing task to work.</span></div>
           <div><b>03</b><strong>REBUILD</strong><span>Clean → haul → repair → restart.</span></div>
         </div>
-        <button id="beginBtn" class="primary">DEPLOY THE CREW</button>
+        <button id="beginBtn" class="primary" onclick="window.deployCrewFallback()">DEPLOY THE CREW</button>
         <div class="intro-footer">Mouse or touch • Babylon.js 3D • No account required</div>
       </div>
     </div>
@@ -76,6 +76,35 @@
     </div>
     <div id="error" class="error hidden" role="alert"></div>
   </main>
-  <script type="module" src="./factory.bundle.js?v=1"></script>
+  <script>
+    (function () {
+      var intro=document.getElementById("intro");
+      var begin=document.getElementById("beginBtn");
+      var error=document.getElementById("error");
+      var started=false;
+      window.deployCrewFallback=function(){
+        started=true;
+        intro.classList.add("hidden");
+        document.getElementById("objectiveDetail").textContent="Crew deployed. Loading 3D controls…";
+        if(window.sprayworksStart)window.sprayworksStart();
+        else setTimeout(function(){
+          if(!window.sprayworksReady){
+            error.textContent="3D engine failed to initialize. Reload this page or check browser WebGL support. The deployment button itself is working.";
+            error.classList.remove("hidden");
+          }
+        },12000);
+      };
+      window.addEventListener("error",function(event){
+        error.textContent="Game error: "+(event.message||"Unknown error");
+        error.classList.remove("hidden");
+      });
+      window.addEventListener("unhandledrejection",function(event){
+        error.textContent="Game loading failed: "+String(event.reason);
+        error.classList.remove("hidden");
+      });
+      begin.addEventListener("click",window.deployCrewFallback);
+    })();
+  </script>
+  <script type="module" src="./factory.bundle.js?v=3"></script>
 </body>
 </html>
