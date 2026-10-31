@@ -51,7 +51,8 @@
       </div>
     </section>
     <div id="toast" role="status" aria-live="polite"></div>
-    <div id="intro" class="overlay">
+    <div id="loading" class="overlay" role="status" aria-live="polite"><div class="intro-card loading-card"><div class="kicker">SPRAYWORKS / FACTORY CREW</div><h2>Preparing the <em>workshop</em></h2><div class="loading-track"><div id="loadingFill"></div></div><div class="loading-row"><strong id="loadingPercent">0%</strong><span id="loadingStage">Connecting to the workshop…</span></div></div></div>
+    <div id="intro" class="overlay hidden">
       <div class="intro-card">
         <div class="kicker">WELCOME TO THE LITTLE BIG WORKSHOP</div>
         <h2>Tiny crew.<br><em>Massive mess.</em></h2>
@@ -61,7 +62,7 @@
           <div><b>02</b><strong>COMMAND</strong><span>Tap the floor to move, or a glowing task to work.</span></div>
           <div><b>03</b><strong>REBUILD</strong><span>Clean → haul → repair → restart.</span></div>
         </div>
-        <button id="beginBtn" class="primary" onclick="window.deployCrewFallback()">DEPLOY THE CREW</button>
+        <button id="beginBtn" class="primary" >DEPLOY THE CREW</button>
         <div class="intro-footer">Mouse or touch • Babylon.js 3D • No account required</div>
       </div>
     </div>
@@ -77,34 +78,58 @@
     <div id="error" class="error hidden" role="alert"></div>
   </main>
   <script>
-    (function () {
-      var intro=document.getElementById("intro");
-      var begin=document.getElementById("beginBtn");
+    (function(){
+      var overlay=document.getElementById("loading");
+      var fill=document.getElementById("loadingFill");
+      var percent=document.getElementById("loadingPercent");
+      var stage=document.getElementById("loadingStage");
       var error=document.getElementById("error");
-      var started=false;
-      window.deployCrewFallback=function(){
-        started=true;
-        intro.classList.add("hidden");
-        document.getElementById("objectiveDetail").textContent="Crew deployed. Loading 3D controls…";
-        if(window.sprayworksStart)window.sprayworksStart();
-        else setTimeout(function(){
-          if(!window.sprayworksReady){
-            error.textContent="3D engine failed to initialize. Reload this page or check browser WebGL support. The deployment button itself is working.";
-            error.classList.remove("hidden");
-          }
-        },12000);
+      var progress=0;
+      var done=false;
+      var stages=[[12,"Downloading 3D engine…"],[35,"Preparing factory materials…"],[60,"Building the workshop…"],[82,"Assembling the crew…"],[94,"Finalizing the scene…"]];
+      function update(value,message){
+        progress=Math.max(progress,Math.min(100,value));
+        fill.style.width=progress+"%";
+        percent.textContent=Math.floor(progress)+"%";
+        if(message)stage.textContent=message;
+      }
+      window.sprayworksProgress=update;
+      window.sprayworksReadyForPlay=function(){
+        if(done)return;
+        done=true;
+        update(100,"Ready to deploy!");
+        setTimeout(function(){overlay.classList.add("hidden");document.getElementById("intro").classList.remove("hidden");},250);
       };
-      window.addEventListener("error",function(event){
-        error.textContent="Game error: "+(event.message||"Unknown error");
+      var timer=setInterval(function(){
+        if(done){clearInterval(timer);return;}
+        var cap=progress<35?35:progress<60?60:progress<82?82:94;
+        if(progress<cap){
+          progress=Math.min(cap,progress+Math.max(.15,(cap-progress)*.045));
+          var message=stages.find(function(s){return progress<s[0];});
+          update(progress,message?message[1]:"Waiting for 3D engine…");
+        }
+      },100);
+      var timeout=setTimeout(function(){
+        if(done)return;
+        clearInterval(timer);
+        overlay.classList.add("hidden");
+        error.textContent="The 3D workshop did not finish loading. Please reload the page. Progress stopped at "+Math.floor(progress)+"%.";
         error.classList.remove("hidden");
-      });
-      window.addEventListener("unhandledrejection",function(event){
-        error.textContent="Game loading failed: "+String(event.reason);
+      },30000);
+      function fail(message){
+        if(done)return;
+        clearInterval(timer);clearTimeout(timeout);
+        overlay.classList.add("hidden");
+        error.textContent="Game startup failed: "+message;
         error.classList.remove("hidden");
+      }
+      window.addEventListener("error",function(event){fail(event.message||"Unknown script error");});
+      window.addEventListener("unhandledrejection",function(event){fail(String(event.reason));});
+      document.getElementById("beginBtn").addEventListener("click",function(){
+        if(window.sprayworksStart)window.sprayworksStart();
       });
-      begin.addEventListener("click",window.deployCrewFallback);
     })();
   </script>
-  <script type="module" src="./factory.bundle.js?v=3"></script>
+  <script type="module" src="./factory.bundle.js?v=4"></script>
 </body>
 </html>
