@@ -11,13 +11,13 @@ export function createClock() {
     ].map(w => ({...w,yaw:0,job:null,carrying:null,status:'Ready'})),
     parts: MARKS.map((mark,i) => ({id:`gear-${mark}`,name:`${mark[0].toUpperCase()+mark.slice(1)} gear`,x:[-2.6,.2,2.8][i],z:[-1.6,-2.2,-1.2][i],y:.18,home:{x:[-2.6,.2,2.8][i],z:[-1.6,-2.2,-1.2][i]},size:[.65,.52,.76][i],color:['#f4c65d','#8dd5eb','#e7a17d'][i],dirt:1,slot:null,carrier:null,mark})),
     slots: MARKS.map((mark,i) => ({id:`shaft-${mark}`,x:[-2,0,2][i],z:1,size:[.65,.52,.76][i],mark,part:null})),
-    selected:0,running:false,paused:false,message:'Select Pip, then tap a dirty gear to wash away the grime and reveal its mark.'
+    selected:0,running:false,paused:false,liftPowered:false,upperReached:false,bellClean:false,finaleTime:0,message:'Select Pip, then tap a dirty gear to wash away the grime and reveal its mark.'
   };
 }
 
 export function progressClock(s) {
   const matched = s.slots.filter(slot => s.parts.find(p=>p.id===slot.part)?.mark===slot.mark).length;
-  return {cleaned:s.parts.filter(p=>p.dirt===0).length,placed:s.slots.filter(slot=>slot.part!==null).length,matched,total:3,solved:s.running};
+  return {cleaned:s.parts.filter(p=>p.dirt===0).length,placed:s.slots.filter(slot=>slot.part!==null).length,matched,total:3,solved:s.running,liftPowered:s.liftPowered,upperReached:s.upperReached,bellClean:s.bellClean};
 }
 
 export function commandClock(s,workerId,target) {
@@ -27,13 +27,26 @@ export function commandClock(s,workerId,target) {
   if (s.paused) return reject('Resume the workshop before giving an order.');
   if (s.running) return reject('The clock is turning! Reset to try the puzzle again.');
   if (w.job) return reject(`${w.name} is busy. Let this job finish first.`);
+  if (target.type==='lift') {
+    if(!s.liftPowered)return reject('Install all three gears to power the elevator first.');
+    s.upperReached=true;s.message='The brass elevator rises! The crew discovers a grime-jammed bell upstairs.';return true;
+  }
+  if (target.type==='bell') {
+    if(!s.upperReached)return reject('Ride the elevator to reach the upper bell chamber.');
+    if(s.bellClean)return reject('The bell is already aligned. Test the clock!');
+    if(w.role!=='sprayer')return reject('Select Pip to spray the jammed bell mechanism.');
+    job={kind:'bell',x:2.9,z:2.2,time:0,phase:'walk'};
+    w.job=job;w.status='Walking to clean the bell';s.message='Pip is climbing to the bell mechanism.';return true;
+  }
   if (target.type==='test') {
     if (s.workers.some(w=>w.job)) return reject('Wait for the crew to finish, then test the clock.');
     const p=progressClock(s);
     if(p.placed<3) return reject(`The clock needs all three gears installed (${p.placed}/3 installed).`);
     const wrong=s.slots.find(slot=>s.parts.find(p=>p.id===slot.part)?.mark!==slot.mark);
     if(wrong) return reject(`The ${wrong.mark} shaft has the wrong gear. Tap its installed gear to remove it, then match the revealed marks.`);
-    s.running=true; s.message='Every mark matches. The gears engage and the clock is turning!'; return true;
+    if(!s.upperReached)return reject('The gears power the elevator. Ride it to discover the bell first.');
+    if(!s.bellClean)return reject('The bell is jammed. Send Pip to clean the upper mechanism.');
+    s.running=true;s.finaleTime=0;s.message='The gears engage! The pendulum swings, the bell rings, and the cuckoo wakes!'; return true;
   }
   let job;
   if (target.type==='part') {
@@ -58,7 +71,8 @@ export function commandClock(s,workerId,target) {
 }
 
 export function tickClock(s,dt) {
-  if(s.paused || s.running || !Number.isFinite(dt) || dt<=0) return s;
+  if(s.paused || !Number.isFinite(dt) || dt<=0) return s;
+  if(s.running){s.finaleTime+=Math.min(dt,.1);return s;}
   // Bound each update so a suspended tab cannot teleport the crew across the room.
   dt=Math.min(dt,.1);
   for(const w of s.workers) {
@@ -67,7 +81,7 @@ export function tickClock(s,dt) {
       if(j.phase==='walk') {
         const d=distance(w,j), step=Math.min(d,dt*1.65);
         if(d>.001) {w.yaw=Math.atan2(j.x-w.x,j.z-w.z);w.x+=(j.x-w.x)/d*step;w.z+=(j.z-w.z)/d*step;}
-        if(d<=step+.001) {j.phase='work';j.time=0;w.status=({clean:'Spraying grime',pickup:'Picking up gear',place:'Installing gear',drop:'Setting down gear',move:'Ready'})[j.kind];}
+        if(d<=step+.001) {j.phase='work';j.time=0;w.status=({bell:'Clearing bell jam',clean:'Spraying grime',pickup:'Picking up gear',place:'Installing gear',drop:'Setting down gear',move:'Ready'})[j.kind];}
       } else {
         j.time+=dt;
         const p=s.parts.find(p=>p.id===j.part);
@@ -75,14 +89,15 @@ export function tickClock(s,dt) {
         if(j.kind==='pickup' && p) {const start=p.slot ? .4 : .18;p.y=start+(.72-start)*Math.min(1,j.time/.45);}
         if(j.kind==='place' && p) p.y=.72-(.72-.4)*Math.min(1,j.time/.6);
         if(j.kind==='drop' && p) p.y=.72-(.72-.18)*Math.min(1,j.time/.35);
-        const duration=({clean:1.6,pickup:.45,place:.6,drop:.35,move:0})[j.kind];
+        const duration=({bell:2.4,clean:1.6,pickup:.45,place:.6,drop:.35,move:0})[j.kind];
         if(j.time+1e-8>=duration) {
+          if(j.kind==='bell'){s.bellClean=true;s.message='The bell swings freely! Test the clock to wake the cuckoo.';}
           if(j.kind==='clean') {p.dirt=0;s.message=`Clean! The gear bears a ${p.mark} mark. Tap it again to pick it up.`;}
           if(j.kind==='pickup') {
-            if(p.slot) s.slots.find(slot=>slot.id===p.slot).part=null;
+            if(p.slot){s.slots.find(slot=>slot.id===p.slot).part=null;s.liftPowered=false;s.upperReached=false;s.bellClean=false;}
             p.slot=null;p.carrier=w.id;w.carrying=p.id;s.message=`${w.name} is carrying the ${p.mark} gear. Choose a shaft with the same mark.`;
           }
-          if(j.kind==='place') {const slot=s.slots.find(slot=>slot.id===j.slot);slot.part=p.id;p.slot=slot.id;p.carrier=null;p.x=slot.x;p.z=slot.z;p.y=.4;w.carrying=null;s.message='Gear installed. You can remove it by tapping it. Install all three, then test the clock.';}
+          if(j.kind==='place') {const slot=s.slots.find(slot=>slot.id===j.slot);slot.part=p.id;p.slot=slot.id;p.carrier=null;p.x=slot.x;p.z=slot.z;p.y=.4;w.carrying=null;s.message='Gear installed. You can remove it by tapping it.';if(progressClock(s).matched===3){s.liftPowered=true;s.message='CLUNK! The restored drive train powers the brass elevator. Ride it to the upper chamber!';}else{s.liftPowered=false;}}
           if(j.kind==='drop') {p.carrier=null;p.slot=null;p.x=w.x;p.z=w.z;p.y=.18;w.carrying=null;s.message='Gear set down safely.';}
           w.job=null;w.status=w.carrying?'Carrying gear':'Ready';
         }
