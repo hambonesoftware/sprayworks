@@ -11,7 +11,7 @@ export function createClock() {
     ].map(w => ({...w,yaw:0,job:null,carrying:null,status:'Ready'})),
     parts: MARKS.map((mark,i) => ({id:`gear-${mark}`,name:`${mark[0].toUpperCase()+mark.slice(1)} gear`,x:[-2.6,.2,2.8][i],z:[-1.6,-2.2,-1.2][i],y:.18,home:{x:[-2.6,.2,2.8][i],z:[-1.6,-2.2,-1.2][i]},size:[.65,.52,.76][i],color:['#f4c65d','#8dd5eb','#e7a17d'][i],dirt:1,slot:null,carrier:null,mark})),
     slots: MARKS.map((mark,i) => ({id:`shaft-${mark}`,x:[-2,0,2][i],z:1,size:[.65,.52,.76][i],mark,part:null})),
-    selected:0,running:false,paused:false,liftPowered:false,upperReached:false,bellClean:false,finaleTime:0,message:'Select Pip, then tap a dirty gear to wash away the grime and reveal its mark.'
+    selected:0,running:false,paused:false,liftPowered:false,upperReached:false,bellClean:false,finaleTime:0,heavyGear:'gear-star',teamCarry:null,teamCarryCompleted:false,message:'Select Pip, then tap a dirty gear to wash away the grime and reveal its mark.'
   };
 }
 
@@ -35,7 +35,7 @@ export function commandClock(s,workerId,target) {
     if(!s.upperReached)return reject('Ride the elevator to reach the upper bell chamber.');
     if(s.bellClean)return reject('The bell is already aligned. Test the clock!');
     if(w.role!=='sprayer')return reject('Select Pip to spray the jammed bell mechanism.');
-    job={kind:'bell',x:2.9,z:2.2,time:0,phase:'walk'};
+    const job={kind:'bell',x:2.9,z:2.2,time:0,phase:'walk'};
     w.job=job;w.status='Walking to clean the bell';s.message='Pip is climbing to the bell mechanism.';return true;
   }
   if (target.type==='test') {
@@ -53,6 +53,18 @@ export function commandClock(s,workerId,target) {
     const p=s.parts.find(p=>p.id===target.id);
     if(!p) return reject('Choose a gear in the workshop.');
     if(w.carrying) return reject(`${w.name} is already carrying a gear. Choose an empty shaft or floor to set it down.`);
+    if(p.id===s.heavyGear && p.dirt===0 && !s.teamCarryCompleted && !p.slot) {
+      if(w.role!=='mechanic')return reject('The heavy star gear needs Bolt and Moss. Select Bolt to call the lifting team.');
+      const partner=s.workers.find(other=>other.role==='vacuum');
+      if(!partner || partner.job || partner.carrying)return reject('Moss needs to be free before the team can lift the heavy star gear.');
+      const targetSlot=s.slots.find(slot=>slot.mark===p.mark);
+      if(targetSlot.part!==null)return reject('The star shaft must be empty.');
+      s.teamCarry={part:p.id,leader:w.id,partner:partner.id,phase:'approach',time:0,x:p.x,z:p.z,slot:targetSlot.id};
+      w.job={kind:'team',phase:'approach'};partner.job={kind:'team',phase:'approach'};
+      w.status='Moving to left lifting grip';partner.status='Moving to right lifting grip';
+      s.message='Bolt and Moss approach opposite sides of the giant star gear. They will lift, carry, and install it together.';
+      return true;
+    }
     if(p.carrier!==null || s.workers.some(other=>other.job?.part===p.id)) return reject('Another crew member is working on that gear.');
     if(p.dirt>0 && w.role!=='sprayer') return reject('Pip must spray this gear clean to reveal its mark first.');
     job={kind:p.dirt>0?'clean':'pickup',part:p.id,x:p.x,z:p.z,time:0,phase:'walk'};
@@ -75,7 +87,30 @@ export function tickClock(s,dt) {
   if(s.running){s.finaleTime+=Math.min(dt,.1);return s;}
   // Bound each update so a suspended tab cannot teleport the crew across the room.
   dt=Math.min(dt,.1);
+  const team=s.teamCarry;
+  if(team){
+    const a=s.workers.find(w=>w.id===team.leader),b=s.workers.find(w=>w.id===team.partner),p=s.parts.find(p=>p.id===team.part),slot=s.slots.find(x=>x.id===team.slot);
+    team.time+=dt;
+    const move=(w,x,z,speed)=>{const d=Math.hypot(x-w.x,z-w.z),step=Math.min(d,dt*speed);if(d>.001){w.yaw=Math.atan2(x-w.x,z-w.z);w.x+=(x-w.x)/d*step;w.z+=(z-w.z)/d*step;}return d<=step+.02;};
+    if(team.phase==='approach'){
+      const readyA=move(a,p.x-.7,p.z,1.65),readyB=move(b,p.x+.7,p.z,1.65);
+      if(readyA&&readyB){team.phase='brace';team.time=0;a.status='Bracing left grip';b.status='Bracing right grip';s.message='Both workers lock their hands to the wheel. One, two, lift!';}
+    }else if(team.phase==='brace'){
+      p.y=.18+.65*Math.min(1,team.time/.8);
+      if(team.time>=.8){team.phase='carry';team.time=0;a.status='Carrying left side';b.status='Carrying right side';}
+    }else if(team.phase==='carry'){
+      const targetX=slot.x,targetZ=slot.z;
+      const dx=targetX-p.x,dz=targetZ-p.z,dist=Math.hypot(dx,dz),step=Math.min(dist,dt*.85);
+      if(dist>.001){p.x+=dx/dist*step;p.z+=dz/dist*step;}
+      a.x=p.x-.7;b.x=p.x+.7;a.z=p.z;b.z=p.z;p.y=.83+Math.sin(team.time*9)*.025;
+      if(dist<=step+.02){team.phase='lower';team.time=0;a.status='Guiding gear onto shaft';b.status='Supporting gear';}
+    }else if(team.phase==='lower'){
+      p.y=.83-(.83-.4)*Math.min(1,team.time/.85);
+      if(team.time>=.85){p.x=slot.x;p.z=slot.z;p.y=.4;p.slot=slot.id;p.carrier=null;slot.part=p.id;s.teamCarryCompleted=true;s.teamCarry=null;a.job=null;b.job=null;a.status='Ready';b.status='Ready';s.liftPowered=progressClock(s).matched===3;s.message=s.liftPowered?'The team seats the final gear! The drive train engages and the lift powers up.':'Bolt and Moss celebrate fitting the heavy star gear.';}
+    }
+  }
   for(const w of s.workers) {
+    if(w.job?.kind==='team')continue;
     const j=w.job;
     if(j) {
       if(j.phase==='walk') {
