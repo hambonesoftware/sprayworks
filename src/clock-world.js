@@ -64,11 +64,28 @@ export function createClockWorld(canvas,state,providedEngine=null){
  box('helmet stripe',.08,.04,.36,white,[0,1.38,0],root);box('cleaning backpack',.34,.42,.22,cream,[0,.65,.26],root,target);cylinder('water tank',.1,.38,water,[.2,.64,.28],root);
  const nozzle=box('worker spray nozzle',.12,.12,.36,brass,[.34,.55,-.3],root);const selection=ring('selected worker halo',.48,.065,water,[0,.03,0],root);
  const drops=Array.from({length:12},()=>sphere('spray droplet',.035,water,[0,-5,0]));return {root,legs,hands,nozzle,selection,drops};});
+ const lift=new TransformNode('powered brass elevator',scene);lift.position.set(3.25,0,2.25);
+ box('elevator platform',1.15,.16,1.05,brass,[0,.12,0],lift);
+ for(const side of [-1,1])box('lift safety rail',.06,.9,.06,brass,[side*.5,.62,.38],lift);
+ const upper=new TransformNode('upper bell chamber',scene);upper.position.set(2.65,2.35,2.5);
+ box('upper clock balcony',2.9,.18,1.65,wood,[0,0,0],upper);
+ const bell=cylinder('cuckoo bell',.43,.6,brass,[0,.63,0],upper);bell.scaling.y=.7;
+ const bellGrime=sphere('bell jam grime',.36,mud,[.32,.43,-.34],upper);bellGrime.scaling.y=.55;
+ const bird=new TransformNode('cuckoo bird',scene);bird.parent=upper;bird.position.set(-.9,.8,-.15);
+ sphere('cuckoo body',.26,teal,[0,0,0],bird);
+ sphere('cuckoo head',.18,white,[0,.24,-.12],bird);
+ box('cuckoo beak',.14,.1,.2,brass,[0,.2,-.36],bird);
+ const liftStart=lift.position.y;
  function resize(){engine.resize();const a=(canvas.clientWidth||engine.getRenderWidth())/(canvas.clientHeight||engine.getRenderHeight());camera.radius=a<.8?19.7:14.2;camera.fov=a<.8?.67:.65;camera.target.set(0,.2,0);}
  resize();
  return {scene,resize,setQuality(high){engine.setHardwareScalingLevel(high?scale():1);engine.resize();},dispose(){scene.dispose();engine.dispose();},pick(x,y){const h=scene.pick(x,y,m=>m.isPickable);if(!h?.hit)return null;const target=h.pickedMesh.metadata?.target;if(target?.type==='floor')return {...target,x:h.pickedPoint.x,z:h.pickedPoint.z};return target||null;},render(t,selected=state.selected){
  parts.forEach((g,i)=>{const p=state.parts[i];g.root.position.set(p.x,p.y??.2,p.z);g.root.rotation.y=state.running?t*(i%2?-1:1)*.7:0;const d=Math.max(0,Math.min(1,p.dirt??1));g.dirt.forEach((mesh,j)=>{mesh.setEnabled(d>j/10);mesh.scaling.y=.36*Math.max(.1,d);});g.symbol.setEnabled(d<.15);});
  workers.forEach((v,i)=>{const w=state.workers[i],walking=w.job?.phase==='walk'||w.walking,carrying=w.carrying!=null;v.root.position.set(w.x,walking?Math.abs(Math.sin(t*9))*.035:0,w.z);v.root.rotation.y=(w.yaw||0)+Math.PI;v.selection.setEnabled(selected===i||selected===w.id);v.legs.forEach((b,j)=>b.position.z=-.04+(walking?Math.sin(t*9+j*Math.PI)*.15:0));const held=state.parts.find(p=>p.id===w.carrying||((w.job?.kind==='pickup'||w.job?.kind==='place'||w.job?.kind==='drop')&&w.job?.phase==='work'&&p.id===w.job.part));v.hands.forEach((h,j)=>{h.position.y=held?(held.y??.72)+.04:carrying?.76:.5+(walking?Math.sin(t*9+j*Math.PI)*.08:0);h.position.z=held||carrying?-.2:-.12;h.position.x=(j===0?-1:1)*(held?Math.min(.62,(Number(held.size)||.65)*.78):.34);});
  const washing=w.job?.kind==='clean'&&w.job?.phase==='work';const p=state.parts.find(p=>p.id===(w.job?.partId??w.job?.targetId??w.job?.part));v.root.computeWorldMatrix(true);const start=v.nozzle.getAbsolutePosition(),end=p?new Vector3(p.x,(p.y??.2)+.2,p.z):start.add(new Vector3(0,-.15,-.7));v.drops.forEach((d,j)=>{d.setEnabled(washing);if(washing){const q=(t*2+j/12)%1;d.position=Vector3.Lerp(start,end,q);d.position.y+=Math.sin(q*Math.PI)*.13;}});
- });idlers.forEach((g,i)=>g.rotation.y=state.running?t*(i%2?-1:1):0);pendulum.rotation.z=state.running?Math.sin(t*2.5)*.22:0;lever.rotation.z=state.running?.3:0;scene.render();}};
+ });lift.position.y=liftStart+(state.upperReached?1.9:state.liftPowered?.12:0);
+ bellGrime.setEnabled(!state.bellClean);
+ bell.rotation.z=state.running?Math.sin(t*10)*.22:0;
+ bird.position.z=state.running?-.15-Math.min(1,(state.finaleTime||0)/1.5)*.85:-.15;
+ bird.rotation.y=state.running?Math.sin(t*3)*.15:0;
+ idlers.forEach((g,i)=>g.rotation.y=state.running?t*(i%2?-1:1):0);pendulum.rotation.z=state.running?Math.sin(t*2.5)*.22:0;lever.rotation.z=state.running?.3:0;scene.render();}};
 }
