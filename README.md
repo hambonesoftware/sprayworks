@@ -1,6 +1,6 @@
 # SprayWorks: Gearbox Garden
 
-The default page is a small visual/gameplay slice: one chunky helmeted worker, an open golden gear, an orange pipe, and direct spray cleaning. Drag across the purple grime or tap Auto-spray. After washing, lift, refit, align, and restart the gear. Pause and replay are available. This slice does not save progress.
+The default page is a small visual/gameplay slice: one chunky helmeted worker, an open golden gear, an orange pipe, and direct spray cleaning. Drag across the purple grime or tap Auto-spray. After washing, command Pip to walk to the gear, lift it overhead, carry it to the service stand, and set it down. Refit sends Pip back with the gear; alignment and restart follow. Walking, carrying, and hand poses animate, commands lock during each job, and Pause freezes the sequence. Pause and replay are available. This slice does not save progress.
 
 The five-worker RTS remains at `?mode=crew`, with its existing local save. Its documentation follows below.
 

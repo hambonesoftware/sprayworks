@@ -33,6 +33,7 @@ export function createCornerWorld(canvas,state,providedEngine=null){
  for(let i=0;i<9;i++)box('platform tread',.09,.025,2.1,dark,[-4+i*.32,.215,-2.3]);
  pipe([[-3.8,.5,2.9],[-3.8,1.2,2.9],[-3.4,1.6,2.9],[-1.9,1.6,2.9]],.24,orange);
  for(const x of [-3.7,3.7])for(const z of [-3.5,3.5]){cyl('large mounting bolt',.22,.18,silver,[x,.15,z],null,6);cyl('hex socket',.09,.015,dark,[x,.25,z],null,6);}
+ box('gear service stand',3.5,.4,2.8,silver,[-1.8,.1,1]);
  const gear=new TransformNode('removable golden gear',scene);gear.position.set(.75,.12,0);
  cyl('gear body',2.05,.5,gold,[0,0,0],gear);ring('beveled gear face',1.65,.18,gold,[0,.27,0],gear);cyl('silver hub',.62,.65,silver,[0,.1,0],gear);cyl('hub inset',.27,.02,dark,[0,.44,0],gear);
  for(let i=0;i<16;i++){const a=i/16*Math.PI*2;const tooth=box('rounded gear tooth',.55,.48,.64,gold,[Math.sin(a)*2.12,0,Math.cos(a)*2.12],gear);tooth.rotation.y=a;ball('tooth bevel',.22,gold,[Math.sin(a)*2.22,.02,Math.cos(a)*2.22],gear).scaling.y=.85;}
@@ -42,7 +43,7 @@ export function createCornerWorld(canvas,state,providedEngine=null){
  const secondary=new TransformNode('drive gear',scene);secondary.position.set(2.5,.05,2.5);cyl('drive wheel',.85,.4,gold,[0,0,0],secondary);for(let i=0;i<12;i++){const a=i/12*Math.PI*2;const t=box('drive tooth',.25,.4,.3,gold,[Math.sin(a)*.92,0,Math.cos(a)*.92],secondary);t.rotation.y=a;}cyl('drive shaft',.24,.75,silver,[0,.2,0],secondary);
  const pip=new TransformNode('Pip',scene);pip.position.set(-2.65,.23,-2.15);pip.rotation.y=.9;
  ball('rounded suit',.43,blue,[0,.64,0],pip).scaling.y=1.1;
- for(const x of [-.22,.22]){ball('boot',.23,dark,[x,.16,-.08],pip).scaling.z=1.4;ball('glove',.18,blue,[x*2,.74,-.15],pip);}
+ const boots=[],hands=[];for(const x of [-.22,.22]){const boot=ball('boot',.23,dark,[x,.16,-.08],pip);boot.scaling.z=1.4;boots.push(boot);hands.push(ball('glove',.18,blue,[x*2,.74,-.15],pip));}
  ball('large round helmet',.53,blue,[0,1.34,0],pip);const face=ball('wide glass visor',.46,visor,[0,1.33,-.23],pip);face.scaling.set(1,.6,.65);const glint=ball('visor highlight',.14,white,[-.19,1.44,-.49],pip);glint.scaling.set(1,.2,.3);
  box('white cleaning backpack',.57,.64,.28,white,[0,.73,.38],pip);cyl('backpack tank',.16,.58,cyan,[.22,.75,.5],pip);const nozzle=box('spray gun',.18,.18,.58,orange,[.42,.8,-.48],pip);
  const stream=MeshBuilder.CreateLines('spray',{points:[Vector3.Zero(),Vector3.Zero()],updatable:true},scene);stream.color=new Color3(.5,.95,1);stream.isPickable=false;
@@ -51,9 +52,9 @@ export function createCornerWorld(canvas,state,providedEngine=null){
  function resize(){engine.resize();const aspect=canvas.clientWidth/canvas.clientHeight;camera.radius=aspect<.8?22:17;camera.target.set(0,.2,0);}
  resize();
  return {dispose(){scene.dispose();engine.dispose();},scene,resize,pick(x,y){const h=scene.pick(x,y,m=>m===hit);if(!h?.hit)return null;const v=h.pickedPoint;return {x:v.x,z:v.z};},render(t,spraying,target){
- const lift=state.phase==='fit'?1.8:0;gear.position.y+=(.12+lift-gear.position.y)*.12;gear.rotation.y=state.phase==='running'?t*.7:state.angle;
+ gear.position.set(state.gear.x,state.gear.y,state.gear.z);gear.rotation.y=state.phase==='running'?t*.7:state.angle;
  secondary.rotation.y=state.phase==='running'?-t*1.7:0;match.setEnabled(state.phase==='fit');
  dirt.forEach((m,i)=>{m.setEnabled(state.dirt[i]>.02);m.scaling.y=.4*state.dirt[i];m.scaling.x=1.2*Math.sqrt(state.dirt[i]);m.scaling.z=1.15*Math.sqrt(state.dirt[i]);});
- pip.position.y=.23+(spraying?Math.sin(t*25)*.025:Math.sin(t*2)*.015);
+ const worker=state.worker;pip.position.set(worker.x,.23+(worker.walk?Math.abs(Math.sin(t*9))*.07:0),worker.z);pip.rotation.y=worker.yaw;boots.forEach((b,i)=>{b.position.z=-.08+Math.sin(t*9+i*Math.PI)*.2*worker.walk;b.position.y=.16+Math.max(0,Math.sin(t*9+i*Math.PI))*.12*worker.walk;});hands.forEach(h=>{h.position.y=.74+worker.arms*1.1;h.position.z=-.15-worker.arms*.38;});nozzle.setEnabled(!state.job);
  const a=nozzle.getAbsolutePosition(),b=new Vector3(target?.x??.75,.55,target?.z??0);stream.setEnabled(spraying);if(spraying)MeshBuilder.CreateLines('spray',{points:[a,b],instance:stream});drops.forEach((m,i)=>{m.setEnabled(spraying);if(spraying){const q=(t*1.8+i/36)%1;m.position=Vector3.Lerp(a,b,q);m.position.x+=Math.sin(i*14+t*8)*q*.16;m.position.z+=Math.cos(i*9+t*7)*q*.16;m.position.y+=Math.sin(q*Math.PI)*.15;}});scene.render();}};
 }

@@ -1,4 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {makeCorner,cleanAt,progress,act} from '../src/corner-state.js';
-test('local spray cleans its hit, not the whole gear',()=>{const s=makeCorner();cleanAt(s,12,.5);assert.equal(s.dirt[12],.5);assert.equal(s.dirt[30],1);assert.equal(s.phase,'wash');});
-test('washing gates lift, refit, alignment and start',()=>{const s=makeCorner();act(s);assert.equal(s.phase,'wash');for(let i=0;i<48;i++)cleanAt(s,i,2);assert.equal(s.phase,'lift');assert.ok(progress(s)>=92);for(const next of ['fit','align','start','running']){act(s);assert.equal(s.phase,next);}assert.equal(s.angle,Math.PI/2);});
+import {makeCorner,cleanAt,progress,act,advance} from '../src/corner-state.js';
+const finish=s=>{for(let i=0;i<200&&s.job;i++)advance(s,.1);};
+test('spray removes only nearby dirt',()=>{const s=makeCorner();cleanAt(s,12,.5);assert.equal(s.dirt[12],.5);assert.equal(s.dirt[30],1);});
+test('Pip travels before lifting, carries to stand and refits before restart',()=>{const s=makeCorner();assert.equal(act(s),false);for(let i=0;i<48;i++)cleanAt(s,i,2);assert.equal(progress(s),100);act(s);assert.equal(act(s),false);advance(s,.1);assert.notEqual(s.worker.x,-2.65);assert.ok(Math.abs(s.gear.y-.12)<1e-8);assert.equal(s.phase,'lift');finish(s);assert.equal(s.phase,'fit');assert.equal(s.gear.x,-1.8);assert.equal(s.gear.y,.55);act(s);finish(s);assert.equal(s.phase,'align');assert.equal(s.gear.x,.75);assert.ok(Math.abs(s.gear.y-.12)<1e-8);act(s);finish(s);assert.equal(s.phase,'start');assert.equal(s.angle,Math.PI/2);act(s);finish(s);assert.equal(s.phase,'running');});
+test('carried gear follows Pip; zero time freezes both',()=>{const s=makeCorner();s.phase='lift';act(s);for(let i=0;i<40;i++)advance(s,.1);assert.equal(s.job.steps[s.job.index][0],'carry');assert.equal(s.gear.x,s.worker.x);assert.equal(s.gear.z,s.worker.z+1.7);const before=JSON.stringify(s);advance(s,0);assert.equal(JSON.stringify(s),before);});
