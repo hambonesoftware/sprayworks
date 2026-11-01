@@ -81,6 +81,10 @@ export function commandClock(s,workerId,target) {
     if(!w.carrying) return reject('Pick up a clean gear first, then choose a shaft.');
     if(slot.part!==null || s.workers.some(other=>other.job?.slot===slot.id)) return reject('That shaft is occupied. Remove its gear first.');
     job={kind:'place',part:w.carrying,slot:slot.id,x:slot.x,z:slot.z,time:0,phase:'walk'};
+  } else if(target.type==='upper-floor') {
+    if(w.level!==1)return reject('Ride the elevator to reach the upper walkway.');
+    if(!Number.isFinite(target.x)||!Number.isFinite(target.z))return reject('Choose a point on the upper walkway.');
+    job={kind:'move',part:null,x:clamp(target.x,1.3,4),z:clamp(target.z,1.8,3),time:0,phase:'walk'};
   } else if(target.type==='floor') {
     if(w.level===1)return reject('This worker is upstairs. Use the upper walkway to reach the bell.');
     if(!Number.isFinite(target.x)||!Number.isFinite(target.z)) return reject('Choose a spot on the floor.');
