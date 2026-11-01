@@ -1,3 +1,13 @@
+# SprayWorks: Gearbox Garden
+
+The default page is a small visual/gameplay slice: one chunky helmeted worker, an open golden gear, an orange pipe, and direct spray cleaning. Drag across the purple grime or tap Auto-spray. After washing, lift, refit, align, and restart the gear. Pause and replay are available. This slice does not save progress.
+
+The five-worker RTS remains at `?mode=crew`, with its existing local save. Its documentation follows below.
+
+The new corner uses original procedural models; Quaternius/Kenney assets have not been integrated into this slice. It is a playable direction study, not a match to the generated concept image. The browser available for QA cannot render WebGL: the simplified Canvas version is checked interactively, and the 3D scene is tested with Babylon NullEngine. Device graphics/performance validation remains outstanding.
+
+Source: `src/corner.js` (controls and fallback), `src/corner-world.js` (3D), `src/corner-state.js` (cleaning and repair sequence).
+
 # SprayWorks: Machine Rescue
 
 A light RTS inside a giant machine. Command five tiny workers to take out dirty parts, clean them, and rebuild the mechanism. Play: https://hambonesoftware.github.io/sprayworks/

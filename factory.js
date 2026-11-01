@@ -1,2 +1,1 @@
-// Static entry point retained for the existing GitHub Pages build workflow.
-import './src/main.js';
+if(new URLSearchParams(location.search).get('mode')==='crew') import('./src/main.js'); else import('./src/corner.js');

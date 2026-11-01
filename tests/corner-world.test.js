@@ -1,0 +1,4 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {NullEngine} from '@babylonjs/core/Engines/nullEngine.js';
+import {createCornerWorld} from '../src/corner-world.js';import {makeCorner} from '../src/corner-state.js';
+test('gearbox scene renders spraying, lifting, and running without GPU',()=>{globalThis.window={addEventListener(){},removeEventListener(){}};const engine=new NullEngine({renderWidth:390,renderHeight:844});const state=makeCorner();const world=createCornerWorld({clientWidth:390,clientHeight:844},state,engine);try{world.render(0,false,null);world.render(1,true,{x:1,z:1});state.phase='fit';world.render(2,false,null);state.phase='running';world.render(3,false,null);assert(world.scene.meshes.length>100);assert(world.scene.getMeshByName('gear touch surface').isPickable);}finally{world.dispose();delete globalThis.window;}});
