@@ -1,3 +1,23 @@
+# SprayWorks: Clockwork Crew
+
+The default page is the first clock assembly puzzle. Select Pip and tap each scattered dirty gear to wash it and reveal its sun, moon, or star mark. Tap a clean gear to pick it up, then choose a matching empty shaft. Any crew member can carry clean gears. Test the clock after installing all three. Wrong placements give a diagnosis and can be removed and corrected without repeating cleaning.
+
+Three workers can work concurrently. Washing is Pip’s specialty; Bolt and Moss can move and install cleaned gears. Vacuum-specific jobs and two-worker lifting are not part of this first level. This prototype resets on reload; it does not save clock progress.
+
+The open clock diorama has an exposed gear train and an animated pendulum when solved. HD/FAST adjusts render density. A Canvas fallback provides the same puzzle when WebGL is unavailable. GPU appearance and phone performance still require device validation.
+
+The previous one-worker Gearbox Garden remains at `?mode=corner`, and the five-worker pump prototype at `?mode=crew`. Those modes remain available for comparison.
+
+## Clock source
+
+- `src/clock-state.js`: orders, cleaning, carrying, placement, test diagnostics.
+- `src/clock-world.js`: Babylon clock diorama and crew.
+- `src/clock.js`, `src/clock.css`: compact touch controls.
+- `src/clock-fallback.js`: playable non-WebGL renderer.
+- `tests/clock-*.test.js`: puzzle and scene checks.
+
+## Previous prototype documentation
+
 # SprayWorks: Gearbox Garden
 
 The default page is a small visual/gameplay slice: one chunky helmeted worker, an open golden gear, an orange pipe, and direct spray cleaning. Drag across the purple grime or tap Auto-spray. After washing, command Pip to walk to the gear, lift it overhead, carry it to the service stand, and set it down. Refit sends Pip back with the gear; alignment and restart follow. Walking, carrying, and hand poses animate, commands lock during each job, and Pause freezes the sequence. Pause and replay are available. This slice does not save progress.

@@ -1,0 +1,99 @@
+const MARKS = ['sun', 'moon', 'star'];
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const distance = (a,b) => Math.hypot(a.x-b.x,a.z-b.z);
+
+export function createClock() {
+  return {
+    workers: [
+      {id:0,name:'Pip',role:'sprayer',color:'#56c9ee',x:-2,z:-3},
+      {id:1,name:'Bolt',role:'mechanic',color:'#f5a552',x:-.7,z:-3},
+      {id:2,name:'Moss',role:'vacuum',color:'#a2cf80',x:.7,z:-3},
+    ].map(w => ({...w,yaw:0,job:null,carrying:null,status:'Ready'})),
+    parts: MARKS.map((mark,i) => ({id:`gear-${mark}`,name:`${mark[0].toUpperCase()+mark.slice(1)} gear`,x:[-2.6,.2,2.8][i],z:[-1.6,-2.2,-1.2][i],y:.18,home:{x:[-2.6,.2,2.8][i],z:[-1.6,-2.2,-1.2][i]},size:[.65,.52,.76][i],color:['#f4c65d','#8dd5eb','#e7a17d'][i],dirt:1,slot:null,carrier:null,mark})),
+    slots: MARKS.map((mark,i) => ({id:`shaft-${mark}`,x:[-2,0,2][i],z:1,size:[.65,.52,.76][i],mark,part:null})),
+    selected:0,running:false,paused:false,message:'Select Pip, then tap a dirty gear to wash away the grime and reveal its mark.'
+  };
+}
+
+export function progressClock(s) {
+  const matched = s.slots.filter(slot => s.parts.find(p=>p.id===slot.part)?.mark===slot.mark).length;
+  return {cleaned:s.parts.filter(p=>p.dirt===0).length,placed:s.slots.filter(slot=>slot.part!==null).length,matched,total:3,solved:s.running};
+}
+
+export function commandClock(s,workerId,target) {
+  const w = s.workers.find(w=>w.id===workerId);
+  if (!w || !target) return false;
+  const reject = message => {s.message=message; return false;};
+  if (s.paused) return reject('Resume the workshop before giving an order.');
+  if (s.running) return reject('The clock is turning! Reset to try the puzzle again.');
+  if (w.job) return reject(`${w.name} is busy. Let this job finish first.`);
+  if (target.type==='test') {
+    if (s.workers.some(w=>w.job)) return reject('Wait for the crew to finish, then test the clock.');
+    const p=progressClock(s);
+    if(p.placed<3) return reject(`The clock needs all three gears installed (${p.placed}/3 installed).`);
+    const wrong=s.slots.find(slot=>s.parts.find(p=>p.id===slot.part)?.mark!==slot.mark);
+    if(wrong) return reject(`The ${wrong.mark} shaft has the wrong gear. Tap its installed gear to remove it, then match the revealed marks.`);
+    s.running=true; s.message='Every mark matches. The gears engage and the clock is turning!'; return true;
+  }
+  let job;
+  if (target.type==='part') {
+    const p=s.parts.find(p=>p.id===target.id);
+    if(!p) return reject('Choose a gear in the workshop.');
+    if(w.carrying) return reject(`${w.name} is already carrying a gear. Choose an empty shaft or floor to set it down.`);
+    if(p.carrier!==null || s.workers.some(other=>other.job?.part===p.id)) return reject('Another crew member is working on that gear.');
+    if(p.dirt>0 && w.role!=='sprayer') return reject('Pip must spray this gear clean to reveal its mark first.');
+    job={kind:p.dirt>0?'clean':'pickup',part:p.id,x:p.x,z:p.z,time:0,phase:'walk'};
+  } else if(target.type==='slot') {
+    const slot=s.slots.find(slot=>slot.id===target.id);
+    if(!slot) return reject('Choose a shaft in the clock.');
+    if(!w.carrying) return reject('Pick up a clean gear first, then choose a shaft.');
+    if(slot.part!==null || s.workers.some(other=>other.job?.slot===slot.id)) return reject('That shaft is occupied. Remove its gear first.');
+    job={kind:'place',part:w.carrying,slot:slot.id,x:slot.x,z:slot.z,time:0,phase:'walk'};
+  } else if(target.type==='floor') {
+    if(!Number.isFinite(target.x)||!Number.isFinite(target.z)) return reject('Choose a spot on the floor.');
+    job={kind:w.carrying?'drop':'move',part:w.carrying,x:clamp(target.x,-4,4),z:clamp(target.z,-3,3),time:0,phase:'walk'};
+  } else return reject('Choose a gear, shaft, or floor.');
+  w.job=job; w.status=`Walking to ${job.kind==='clean'?'wash gear':job.kind==='pickup'?'pick up gear':job.kind==='place'?'install gear':job.kind==='drop'?'set down gear':'spot'}`;
+  s.message=`${w.name}: ${w.status.toLowerCase()}.`; return true;
+}
+
+export function tickClock(s,dt) {
+  if(s.paused || s.running || !Number.isFinite(dt) || dt<=0) return s;
+  // Bound each update so a suspended tab cannot teleport the crew across the room.
+  dt=Math.min(dt,.1);
+  for(const w of s.workers) {
+    const j=w.job;
+    if(j) {
+      if(j.phase==='walk') {
+        const d=distance(w,j), step=Math.min(d,dt*1.65);
+        if(d>.001) {w.yaw=Math.atan2(j.x-w.x,j.z-w.z);w.x+=(j.x-w.x)/d*step;w.z+=(j.z-w.z)/d*step;}
+        if(d<=step+.001) {j.phase='work';j.time=0;w.status=({clean:'Spraying grime',pickup:'Picking up gear',place:'Installing gear',drop:'Setting down gear',move:'Ready'})[j.kind];}
+      } else {
+        j.time+=dt;
+        const p=s.parts.find(p=>p.id===j.part);
+        if(j.kind==='clean' && p) p.dirt=Math.max(0,1-j.time/1.6);
+        if(j.kind==='pickup' && p) {const start=p.slot ? .4 : .18;p.y=start+(.72-start)*Math.min(1,j.time/.45);}
+        if(j.kind==='place' && p) p.y=.72-(.72-.4)*Math.min(1,j.time/.6);
+        if(j.kind==='drop' && p) p.y=.72-(.72-.18)*Math.min(1,j.time/.35);
+        const duration=({clean:1.6,pickup:.45,place:.6,drop:.35,move:0})[j.kind];
+        if(j.time+1e-8>=duration) {
+          if(j.kind==='clean') {p.dirt=0;s.message=`Clean! The gear bears a ${p.mark} mark. Tap it again to pick it up.`;}
+          if(j.kind==='pickup') {
+            if(p.slot) s.slots.find(slot=>slot.id===p.slot).part=null;
+            p.slot=null;p.carrier=w.id;w.carrying=p.id;s.message=`${w.name} is carrying the ${p.mark} gear. Choose a shaft with the same mark.`;
+          }
+          if(j.kind==='place') {const slot=s.slots.find(slot=>slot.id===j.slot);slot.part=p.id;p.slot=slot.id;p.carrier=null;p.x=slot.x;p.z=slot.z;p.y=.4;w.carrying=null;s.message='Gear installed. You can remove it by tapping it. Install all three, then test the clock.';}
+          if(j.kind==='drop') {p.carrier=null;p.slot=null;p.x=w.x;p.z=w.z;p.y=.18;w.carrying=null;s.message='Gear set down safely.';}
+          w.job=null;w.status=w.carrying?'Carrying gear':'Ready';
+        }
+      }
+    }
+    if(w.carrying) {const p=s.parts.find(p=>p.id===w.carrying);p.x=w.x;p.z=w.z;if(!w.job || w.job.phase!=='work' || !['place','drop'].includes(w.job.kind))p.y=.72;}
+  }
+  return s;
+}
+
+export function resetClock(s) {
+  Object.assign(s,createClock());
+  return s;
+}

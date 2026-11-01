@@ -5,7 +5,7 @@
   "description": "A tiny maintenance crew disassembles, washes and rebuilds the inside of a giant machine.",
   "scripts": {
     "test": "node --test physics.test.js crew-logic.test.js tests/*.test.js",
-    "check": "node --check factory.js && node --check src/main.js && node --check src/world.js && node --check src/simulation.js && node --check scripts/build.mjs",
+    "check": "node --check factory.js && node --check src/main.js && node --check src/world.js && node --check src/simulation.js && node --check scripts/build.mjs && node --check src/clock.js && node --check src/clock-state.js && node --check src/clock-world.js && node --check src/clock-fallback.js",
     "build": "node scripts/build.mjs"
   },
   "dependencies": {

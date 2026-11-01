@@ -7,6 +7,7 @@ for(const name of ["index.html","legacy.html","game.js","physics.js","style.css"
   await copyFile(name,output+"/"+name);
 }
 await copyFile("src/style.css",output+"/crew.css");
+await copyFile("src/clock.css",output+"/clock.css");
 await cp("vendor",output+"/vendor",{recursive:true});
 await build({
   entryPoints:["factory.js"],
