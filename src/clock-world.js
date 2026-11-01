@@ -64,6 +64,42 @@ export function createClockWorld(canvas,state,providedEngine=null){
  box('helmet stripe',.08,.04,.36,white,[0,1.38,0],root);box('cleaning backpack',.34,.42,.22,cream,[0,.65,.26],root,target);cylinder('water tank',.1,.38,water,[.2,.64,.28],root);
  const nozzle=box('worker spray nozzle',.12,.12,.36,brass,[.34,.55,-.3],root);const selection=ring('selected worker halo',.48,.065,water,[0,.03,0],root);
  const drops=Array.from({length:12},()=>sphere('spray droplet',.035,water,[0,-5,0]));return {root,legs,hands,nozzle,selection,drops};});
+ // CLOCK INTERIOR: three connected spaces, not a tabletop. Keep the front open for readability.
+ const timber=(n,w,h,d,x,y,z)=>box(n,w,h,d,wood,[x,y,z]);
+ const metal=(n,w,h,d,x,y,z)=>box(n,w,h,d,brass,[x,y,z]);
+ // Lower drive workshop: rear bulkhead, massive arch and separated gear bays.
+ timber('lower machine rear wall',8.4,3.5,.24,0,1.45,3.5);
+ for(const x of [-4.1,-1.45,1.45,4.1]){
+   timber('load bearing clock column',.32,5.8,.48,x,2.65,3.15);
+   metal('column fillet',.38,.12,.54,x,.45,3.15);
+   metal('column crown',.38,.12,.54,x,5.4,3.15);
+ }
+ timber('drive room lintel',8.6,.3,.45,0,3.1,3.25);
+ // Suspended bridge, upper bell-room enclosure and skylight frame.
+ timber('upper chamber back wall',3.7,2.75,.26,2.65,3.45,3.44);
+ timber('upper bell left wall',.2,2.6,1.9,.92,3.45,2.6);
+ timber('upper bell right wall',.2,2.6,1.9,4.4,3.45,2.6);
+ timber('bell chamber crown',3.75,.26,2.0,2.65,4.9,2.6);
+ metal('bell arch upper edge',3.7,.1,.1,2.65,4.72,1.65);
+ // A third, visibly different pendulum gallery sits left of the drive room.
+ timber('pendulum gallery floor',2.55,.22,1.75,-2.65,1.68,2.05);
+ timber('pendulum gallery back',2.7,2.4,.2,-2.65,2.9,3.03);
+ metal('pendulum gallery guardrail',2.4,.08,.08,-2.65,2.12,1.25);
+ for(const x of [-3.8,-1.5])metal('pendulum gallery baluster',.08,.62,.08,x,1.88,1.25);
+ metal('pendulum gallery bridge',2.3,.14,.65,-.55,1.7,2.1);
+ for(const x of [-1.5,-.75,0])metal('gallery bridge crossbar',.07,.17,.7,x,1.7,2.1);
+ // Enclosed elevator shaft and an overhead gantry make the travel route legible.
+ for(const x of [2.62,3.88]){
+   metal('elevator shaft guide',.13,3.2,.13,x,1.55,2.75);
+   metal('elevator guide cap',.22,.18,.22,x,3.15,2.75);
+ }
+ metal('elevator top beam',1.55,.18,.32,3.25,3.15,2.75);
+ // Large overhead spring and transmission spindle signal that this is inside a machine.
+ for(let i=0;i<11;i++){
+   const spring=ring('tower mainspring coil',.48,.055,brass,[-2.9,3.2+i*.16,2.8]);
+   spring.rotation.x=Math.PI/2;
+ }
+ cylinder('tower mainspring spindle',.12,2.0,silver,[-2.9,3.9,2.8]);
  const lift=new TransformNode('powered brass elevator',scene);lift.position.set(3.25,0,2.25);
  box('elevator platform',1.15,.16,1.05,brass,[0,.12,0],lift);
  for(const side of [-1,1])box('lift safety rail',.06,.9,.06,brass,[side*.5,.62,.38],lift);
@@ -88,17 +124,19 @@ export function createClockWorld(canvas,state,providedEngine=null){
  sphere('cuckoo head',.18,white,[0,.24,-.12],bird);
  box('cuckoo beak',.14,.1,.2,brass,[0,.2,-.36],bird);
  const liftStart=lift.position.y;
- function resize(){engine.resize();const a=(canvas.clientWidth||engine.getRenderWidth())/(canvas.clientHeight||engine.getRenderHeight());camera.radius=a<.8?19.7:14.2;camera.fov=a<.8?.67:.65;camera.target.set(0,.2,0);}
+ function resize(){engine.resize();const a=(canvas.clientWidth||engine.getRenderWidth())/(canvas.clientHeight||engine.getRenderHeight());camera.radius=a<.8?15.5:12.5;camera.fov=a<.8?.67:.65;}
  resize();
  return {scene,resize,setQuality(high){engine.setHardwareScalingLevel(high?scale():1);engine.resize();},dispose(){scene.dispose();engine.dispose();},pick(x,y){const h=scene.pick(x,y,m=>m.isPickable);if(!h?.hit)return null;const target=h.pickedMesh.metadata?.target;if(target?.type==='floor'||target?.type==='upper-floor')return {...target,x:h.pickedPoint.x,z:h.pickedPoint.z};return target||null;},render(t,selected=state.selected){
  parts.forEach((g,i)=>{const p=state.parts[i];g.root.position.set(p.x,p.y??.2,p.z);g.root.rotation.y=state.running?t*(i%2?-1:1)*.7:0;const d=Math.max(0,Math.min(1,p.dirt??1));g.dirt.forEach((mesh,j)=>{mesh.setEnabled(d>j/10);mesh.scaling.y=.36*Math.max(.1,d);});g.symbol.setEnabled(d<.15);});
  workers.forEach((v,i)=>{const w=state.workers[i],walking=w.job?.phase==='walk'||w.job?.phase==='board'||w.walking,carrying=w.carrying!=null;const riding=state.liftRide?.worker===w.id;const liftHeight=riding?1.9*(state.liftRide?.progress||0):(w.level===1?2.36:0);v.root.position.set(w.x,liftHeight+(walking?Math.abs(Math.sin(t*12))*.035:0),w.z);v.root.rotation.y=(w.yaw||0)+Math.PI;v.selection.setEnabled(selected===i||selected===w.id);v.legs.forEach((b,j)=>b.position.z=-.04+(walking?Math.sin(t*12+j*Math.PI)*.15:0));const teamwork=state.teamCarry?.leader===w.id||state.teamCarry?.partner===w.id;const held=state.parts.find(p=>(teamwork&&p.id===state.teamCarry?.part)||p.id===w.carrying||((w.job?.kind==='pickup'||w.job?.kind==='place'||w.job?.kind==='drop')&&w.job?.phase==='work'&&p.id===w.job.part));v.hands.forEach((h,j)=>{h.position.y=held?(held.y??.72)+.04:carrying?.76:.5+(walking?Math.sin(t*9+j*Math.PI)*.08:0);h.position.z=held||carrying?-.2:-.12;h.position.x=(j===0?-1:1)*(held?Math.min(.62,(Number(held.size)||.65)*.78):.34);});
  const washing=(w.job?.kind==='clean'||w.job?.kind==='bell')&&w.job?.phase==='work';const p=state.parts.find(p=>p.id===(w.job?.partId??w.job?.targetId??w.job?.part));v.root.computeWorldMatrix(true);const start=v.nozzle.getAbsolutePosition(),end=p?new Vector3(p.x,(p.y??.2)+.2,p.z):w.job?.kind==='bell'?new Vector3(2.65,2.9,2.5):start.add(new Vector3(0,-.15,-.7));v.drops.forEach((d,j)=>{d.setEnabled(washing);if(washing){const q=(t*2+j/12)%1;d.position=Vector3.Lerp(start,end,q);d.position.y+=Math.sin(q*Math.PI)*.13;}});
  });
- const targetY=state.upperReached?1.25:(state.liftRide?.phase==='ascend'?0.2+1.05*(state.liftRide.progress||0):0.2);
- camera.target.y+=(targetY-camera.target.y)*.045;
- const desiredRadius=state.upperReached?16.5:((canvas.clientWidth||390)/(canvas.clientHeight||844)<.8?19.7:14.2);
- camera.radius+=(desiredRadius-camera.radius)*.012;
+ const upperFocus=state.upperReached||(state.liftRide?.phase==='ascend'&&state.liftRide.progress>.55);
+ const desiredFocus=upperFocus?new Vector3(2.65,2.55,2.4):new Vector3(0,.85,.3);
+ camera.target=Vector3.Lerp(camera.target,desiredFocus,.035);
+ const portrait=(canvas.clientWidth||390)/(canvas.clientHeight||844)<.8;
+ const desiredRadius=upperFocus?(portrait?9.2:7.5):(portrait?15.5:12.5);
+ camera.radius+=(desiredRadius-camera.radius)*.025;
  lift.position.y=liftStart+(state.liftRide?1.9*(state.liftRide.progress||0):state.upperReached?1.9:state.liftPowered?.12:0);
  bellGrime.setEnabled(!state.bellClean);
  bell.rotation.z=state.running?Math.sin(t*10)*.22:0;
