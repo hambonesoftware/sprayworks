@@ -17,7 +17,7 @@ export function createClockWorld(canvas,state,providedEngine=null){
  const scene=new Scene(engine);scene.clearColor=new Color4(.045,.115,.14,1);
  const camera=new ArcRotateCamera('clock camera',-Math.PI/2,.69,15,new Vector3(0,.2,0),scene);camera.inputs.clear();camera.fov=.65;camera.minZ=.1;
  const fill=new HemisphericLight('cream studio fill',new Vector3(0,1,0),scene);fill.intensity=1.15;fill.groundColor=Color3.FromHexString('#597b79');
- const sun=new DirectionalLight('warm workshop light',new Vector3(-.4,-1,.3),scene);sun.intensity=1.7;sun.position=new Vector3(4,9,-5);const shadows=new ShadowGenerator(2048,sun);shadows.useBlurExponentialShadowMap=true;shadows.blurKernel=5;shadows.setDarkness(.27);shadows.bias=.0005;shadows.normalBias=.015;
+ const sun=new DirectionalLight('warm workshop light',new Vector3(-.4,-1,.3),scene);sun.intensity=1.7;sun.position=new Vector3(4,9,-5);const shadows=new ShadowGenerator(1024,sun);shadows.useBlurExponentialShadowMap=true;shadows.blurKernel=5;shadows.setDarkness(.27);shadows.bias=.0005;shadows.normalBias=.015;
  function material(name,color,shine=.25){const m=new StandardMaterial(name,scene);m.diffuseColor=Color3.FromHexString(color||'#edb93f');m.specularColor=new Color3(shine,shine,shine);m.specularPower=64;return m;}
  const wood=material('walnut case','#8c4f32'),edge=material('honey wood edge','#c78c52'),cream=material('ivory clock plate','#e6dcc1'),teal=material('turquoise enamel','#30acaa'),brass=material('polished brass','#e8b746',.7),dark=material('blue black steel','#153c48'),silver=material('silver hardware','#d9e7e3',.6),white=material('warm white','#fff5d7'),mud=material('purple clock grime','#6d397d'),water=material('bright water','#8be9f3',.5);water.emissiveColor=new Color3(.2,.45,.5);
  const mats=new Map();function color(c){if(!mats.has(c))mats.set(c,material('enamel '+c,c));return mats.get(c);}
@@ -67,8 +67,20 @@ export function createClockWorld(canvas,state,providedEngine=null){
  const lift=new TransformNode('powered brass elevator',scene);lift.position.set(3.25,0,2.25);
  box('elevator platform',1.15,.16,1.05,brass,[0,.12,0],lift);
  for(const side of [-1,1])box('lift safety rail',.06,.9,.06,brass,[side*.5,.62,.38],lift);
+ // Layered cutaway: structural uprights, upper catwalk, and visible drive bridges.
+ for(const x of [-3.7,3.7]){
+  box('clock tower upright',.25,3.5,.27,wood,[x,1.45,2.95]);
+  box('clock tower brass spine',.09,3.1,.09,brass,[x,1.5,2.75]);
+ }
+ box('upper shaft bridge',2.0,.12,.5,brass,[1.4,2.15,2.5]);
+ for(const x of [.55,1.3,2.05])box('upper bridge cross brace',.11,.2,.56,dark,[x,2.15,2.5]);
  const upper=new TransformNode('upper bell chamber',scene);upper.position.set(2.65,2.35,2.5);
  box('upper clock balcony',2.9,.18,1.65,wood,[0,0,0],upper);
+ box('upper balcony brass trim',2.95,.12,.12,brass,[0,.04,-.82],upper);
+ for(const x of [-1.25,0,1.25])box('upper chamber guardrail post',.09,.65,.09,brass,[x,.4,.7],upper);
+ box('upper chamber guardrail',2.65,.08,.08,brass,[0,.74,.7],upper);
+ const upperFloor=box('walkable upper catwalk',2.8,.05,1.45,cream,[0,.11,0],upper,{type:'upper-floor'});
+ upperFloor.metadata={target:{type:'upper-floor'}};
  const bell=cylinder('cuckoo bell',.43,.6,brass,[0,.63,0],upper);bell.scaling.y=.7;
  const bellGrime=sphere('bell jam grime',.36,mud,[.32,.43,-.34],upper);bellGrime.scaling.y=.55;
  const bird=new TransformNode('cuckoo bird',scene);bird.parent=upper;bird.position.set(-.9,.8,-.15);
@@ -80,9 +92,13 @@ export function createClockWorld(canvas,state,providedEngine=null){
  resize();
  return {scene,resize,setQuality(high){engine.setHardwareScalingLevel(high?scale():1);engine.resize();},dispose(){scene.dispose();engine.dispose();},pick(x,y){const h=scene.pick(x,y,m=>m.isPickable);if(!h?.hit)return null;const target=h.pickedMesh.metadata?.target;if(target?.type==='floor')return {...target,x:h.pickedPoint.x,z:h.pickedPoint.z};return target||null;},render(t,selected=state.selected){
  parts.forEach((g,i)=>{const p=state.parts[i];g.root.position.set(p.x,p.y??.2,p.z);g.root.rotation.y=state.running?t*(i%2?-1:1)*.7:0;const d=Math.max(0,Math.min(1,p.dirt??1));g.dirt.forEach((mesh,j)=>{mesh.setEnabled(d>j/10);mesh.scaling.y=.36*Math.max(.1,d);});g.symbol.setEnabled(d<.15);});
- workers.forEach((v,i)=>{const w=state.workers[i],walking=w.job?.phase==='walk'||w.job?.phase==='board'||w.walking,carrying=w.carrying!=null;const riding=state.liftRide?.worker===w.id;const liftHeight=riding?1.9*(state.liftRide?.progress||0):0;v.root.position.set(w.x,liftHeight+(walking?Math.abs(Math.sin(t*12))*.035:0),w.z);v.root.rotation.y=(w.yaw||0)+Math.PI;v.selection.setEnabled(selected===i||selected===w.id);v.legs.forEach((b,j)=>b.position.z=-.04+(walking?Math.sin(t*12+j*Math.PI)*.15:0));const teamwork=state.teamCarry?.leader===w.id||state.teamCarry?.partner===w.id;const held=state.parts.find(p=>(teamwork&&p.id===state.teamCarry?.part)||p.id===w.carrying||((w.job?.kind==='pickup'||w.job?.kind==='place'||w.job?.kind==='drop')&&w.job?.phase==='work'&&p.id===w.job.part));v.hands.forEach((h,j)=>{h.position.y=held?(held.y??.72)+.04:carrying?.76:.5+(walking?Math.sin(t*9+j*Math.PI)*.08:0);h.position.z=held||carrying?-.2:-.12;h.position.x=(j===0?-1:1)*(held?Math.min(.62,(Number(held.size)||.65)*.78):.34);});
+ workers.forEach((v,i)=>{const w=state.workers[i],walking=w.job?.phase==='walk'||w.job?.phase==='board'||w.walking,carrying=w.carrying!=null;const riding=state.liftRide?.worker===w.id;const liftHeight=riding?1.9*(state.liftRide?.progress||0):(w.level===1?2.36:0);v.root.position.set(w.x,liftHeight+(walking?Math.abs(Math.sin(t*12))*.035:0),w.z);v.root.rotation.y=(w.yaw||0)+Math.PI;v.selection.setEnabled(selected===i||selected===w.id);v.legs.forEach((b,j)=>b.position.z=-.04+(walking?Math.sin(t*12+j*Math.PI)*.15:0));const teamwork=state.teamCarry?.leader===w.id||state.teamCarry?.partner===w.id;const held=state.parts.find(p=>(teamwork&&p.id===state.teamCarry?.part)||p.id===w.carrying||((w.job?.kind==='pickup'||w.job?.kind==='place'||w.job?.kind==='drop')&&w.job?.phase==='work'&&p.id===w.job.part));v.hands.forEach((h,j)=>{h.position.y=held?(held.y??.72)+.04:carrying?.76:.5+(walking?Math.sin(t*9+j*Math.PI)*.08:0);h.position.z=held||carrying?-.2:-.12;h.position.x=(j===0?-1:1)*(held?Math.min(.62,(Number(held.size)||.65)*.78):.34);});
  const washing=(w.job?.kind==='clean'||w.job?.kind==='bell')&&w.job?.phase==='work';const p=state.parts.find(p=>p.id===(w.job?.partId??w.job?.targetId??w.job?.part));v.root.computeWorldMatrix(true);const start=v.nozzle.getAbsolutePosition(),end=p?new Vector3(p.x,(p.y??.2)+.2,p.z):w.job?.kind==='bell'?new Vector3(2.65,2.9,2.5):start.add(new Vector3(0,-.15,-.7));v.drops.forEach((d,j)=>{d.setEnabled(washing);if(washing){const q=(t*2+j/12)%1;d.position=Vector3.Lerp(start,end,q);d.position.y+=Math.sin(q*Math.PI)*.13;}});
- });lift.position.y=liftStart+(state.liftRide?1.9*(state.liftRide.progress||0):state.upperReached?1.9:state.liftPowered?.12:0);
+ });
+ const targetY=state.upperReached?1.25:state.liftRide?.phase==='ascend'?.2+1.05*(state.liftRide.progress||0):.2;
+ camera.target.y+=(targetY-camera.target.y)*.045;
+ camera.radius+=(state.upperReached?16.5:((canvas.clientWidth||390)/(canvas.clientHeight||844)<.8?19.7:14.2)-camera.radius)*.012;
+ lift.position.y=liftStart+(state.liftRide?1.9*(state.liftRide.progress||0):state.upperReached?1.9:state.liftPowered?.12:0);
  bellGrime.setEnabled(!state.bellClean);
  bell.rotation.z=state.running?Math.sin(t*10)*.22:0;
  bird.position.z=state.running?-.15-Math.min(1,(state.finaleTime||0)/1.5)*.85:-.15;
