@@ -30,6 +30,7 @@ export function commandClock(s,workerId,target) {
   if (target.type==='lift') {
     if(!s.liftPowered)return reject('Install all three gears to power the elevator first.');
     if(s.liftRide)return reject('The elevator has already carried a worker upstairs.');
+    if(w.role!=='sprayer')return reject('Select Pip to ride the lift; Pip needs to clean the bell upstairs.');
     if(s.workers.some(a=>a.job))return reject('Wait until the crew finishes their current jobs.');
     s.liftRide={worker:w.id,phase:'board',time:0,progress:0};
     w.job={kind:'lift',phase:'board'};w.status='Walking onto elevator';
