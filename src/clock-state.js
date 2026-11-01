@@ -8,7 +8,7 @@ export function createClock() {
       {id:0,name:'Pip',role:'sprayer',color:'#56c9ee',x:-2,z:-3},
       {id:1,name:'Bolt',role:'mechanic',color:'#f5a552',x:-.7,z:-3},
       {id:2,name:'Moss',role:'vacuum',color:'#a2cf80',x:.7,z:-3},
-    ].map(w => ({...w,yaw:0,job:null,carrying:null,status:'Ready'})),
+    ].map(w => ({...w,yaw:0,level:0,job:null,carrying:null,status:'Ready'})),
     parts: MARKS.map((mark,i) => ({id:`gear-${mark}`,name:`${mark[0].toUpperCase()+mark.slice(1)} gear`,x:[-2.6,.2,2.8][i],z:[-1.6,-2.2,-1.2][i],y:.18,home:{x:[-2.6,.2,2.8][i],z:[-1.6,-2.2,-1.2][i]},size:[.65,.52,.76][i],color:['#f4c65d','#8dd5eb','#e7a17d'][i],dirt:1,slot:null,carrier:null,mark})),
     slots: MARKS.map((mark,i) => ({id:`shaft-${mark}`,x:[-2,0,2][i],z:1,size:[.65,.52,.76][i],mark,part:null})),
     selected:0,running:false,paused:false,liftPowered:false,upperReached:false,liftRide:null,bellClean:false,finaleTime:0,heavyGear:'gear-star',teamCarry:null,teamCarryCompleted:false,message:'Select Pip, then tap a dirty gear to wash away the grime and reveal its mark.'
@@ -29,7 +29,7 @@ export function commandClock(s,workerId,target) {
   if (w.job) return reject(`${w.name} is busy. Let this job finish first.`);
   if (target.type==='lift') {
     if(!s.liftPowered)return reject('Install all three gears to power the elevator first.');
-    if(s.liftRide)return reject('The elevator is already moving.');
+    if(s.liftRide)return reject('The elevator has already carried a worker upstairs.');
     if(s.workers.some(a=>a.job))return reject('Wait until the crew finishes their current jobs.');
     s.liftRide={worker:w.id,phase:'board',time:0,progress:0};
     w.job={kind:'lift',phase:'board'};w.status='Walking onto elevator';
@@ -39,6 +39,7 @@ export function commandClock(s,workerId,target) {
     if(!s.upperReached)return reject('Ride the elevator to reach the upper bell chamber.');
     if(s.bellClean)return reject('The bell is already aligned. Test the clock!');
     if(w.role!=='sprayer')return reject('Select Pip to spray the jammed bell mechanism.');
+    if(w.level!==1)return reject('Pip must ride the elevator upstairs before cleaning the bell. Select Pip and use Ride Lift.');
     const job={kind:'bell',x:2.9,z:2.2,time:0,phase:'walk'};
     w.job=job;w.status='Walking to clean the bell';s.message='Pip is climbing to the bell mechanism.';return true;
   }
@@ -80,6 +81,7 @@ export function commandClock(s,workerId,target) {
     if(slot.part!==null || s.workers.some(other=>other.job?.slot===slot.id)) return reject('That shaft is occupied. Remove its gear first.');
     job={kind:'place',part:w.carrying,slot:slot.id,x:slot.x,z:slot.z,time:0,phase:'walk'};
   } else if(target.type==='floor') {
+    if(w.level===1)return reject('This worker is upstairs. Use the upper walkway to reach the bell.');
     if(!Number.isFinite(target.x)||!Number.isFinite(target.z)) return reject('Choose a spot on the floor.');
     job={kind:w.carrying?'drop':'move',part:w.carrying,x:clamp(target.x,-4,4),z:clamp(target.z,-3,3),time:0,phase:'walk'};
   } else return reject('Choose a gear, shaft, or floor.');
@@ -101,7 +103,7 @@ export function tickClock(s,dt) {
       if(d<=step+.02){rider.x=3.25;rider.z=2.25;ride.phase='ascend';ride.time=0;rider.status='Riding elevator up';s.message='The lift carries the crew into the upper clock chamber!';}
     }else if(ride.phase==='ascend'){
       ride.time+=dt;ride.progress=Math.min(1,ride.time/1.65);
-      if(ride.progress>=1){s.upperReached=true;ride.phase='arrived';rider.job=null;rider.status='Upstairs';s.message='The elevator has arrived! The bell mechanism is jammed with grime.';}
+      if(ride.progress>=1){s.upperReached=true;rider.level=1;ride.phase='arrived';rider.job=null;rider.status='Upstairs';s.message='The elevator has arrived! The bell mechanism is jammed with grime.';}
     }
   }
   const team=s.teamCarry;
