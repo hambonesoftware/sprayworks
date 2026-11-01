@@ -66,6 +66,7 @@ export function commandClock(s,workerId,target) {
       return true;
     }
     if(p.carrier!==null || s.workers.some(other=>other.job?.part===p.id)) return reject('Another crew member is working on that gear.');
+    if(p.id===s.heavyGear && p.slot)return reject('The team-installed star gear is bolted in place. Reset the shift to start over.');
     if(p.dirt>0 && w.role!=='sprayer') return reject('Pip must spray this gear clean to reveal its mark first.');
     job={kind:p.dirt>0?'clean':'pickup',part:p.id,x:p.x,z:p.z,time:0,phase:'walk'};
   } else if(target.type==='slot') {
