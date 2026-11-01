@@ -100,6 +100,13 @@ export function createClockWorld(canvas,state,providedEngine=null){
    spring.rotation.x=Math.PI/2;
  }
  cylinder('tower mainspring spindle',.12,2.0,silver,[-2.9,3.9,2.8]);
+ // The locked machine-to-machine gateway establishes this clock as Chamber 01.
+ const gateway=new TransformNode('passage to chamber two',scene);gateway.position.set(-3.35,0,2.95);
+ box('next chamber doorway surround',1.35,2.15,.22,brass,[0,1.05,0],gateway);
+ box('next chamber dark door',1.04,1.76,.08,dark,[0,1.02,-.15],gateway,{type:'exit'});
+ for(const x of [-.57,.57])box('next chamber door jamb',.12,2.12,.3,wood,[x,1.05,-.18],gateway);
+ box('next chamber door header',1.32,.16,.3,wood,[0,2.08,-.18],gateway);
+ const gatewayLamp=sphere('passage status lamp',.14,mud,[0,2.3,-.28],gateway);
  const lift=new TransformNode('powered brass elevator',scene);lift.position.set(3.25,0,2.25);
  box('elevator platform',1.15,.16,1.05,brass,[0,.12,0],lift);
  for(const side of [-1,1])box('lift safety rail',.06,.9,.06,brass,[side*.5,.62,.38],lift);
@@ -138,6 +145,7 @@ export function createClockWorld(canvas,state,providedEngine=null){
  const desiredRadius=upperFocus?(portrait?9.2:7.5):(portrait?15.5:12.5);
  camera.radius+=(desiredRadius-camera.radius)*.025;
  lift.position.y=liftStart+(state.liftRide?1.9*(state.liftRide.progress||0):state.upperReached?1.9:state.liftPowered?.12:0);
+ gatewayLamp.material=state.exitUnlocked?water:mud;
  bellGrime.setEnabled(!state.bellClean);
  bell.rotation.z=state.running?Math.sin(t*10)*.22:0;
  bird.position.z=state.running?-.15-Math.min(1,(state.finaleTime||0)/1.5)*.85:-.15;
