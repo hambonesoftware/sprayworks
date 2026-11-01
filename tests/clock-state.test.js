@@ -64,3 +64,14 @@ test('elevator rider boards, rises continuously and arrives upstairs',()=>{
  }
  assert.ok(sawRise);assert.equal(s.liftRide.progress,1);assert.equal(s.upperReached,true);assert.equal(w.x,3.25);assert.equal(w.z,2.25);
 });
+
+test('clock is chamber one and completion unlocks the next passage without pretending chamber two is playable',()=>{
+ const s=createClock();assert.equal(s.chapter,1);assert.equal(s.chamber,'clock');assert.equal(s.exitUnlocked,false);
+ assert.equal(commandClock(s,0,{type:'exit'}),false);
+ cleanAll(s);for(let i=0;i<3;i++)fitGear(s,i);
+ order(s,0,{type:'lift'});order(s,0,{type:'bell'});
+ assert.equal(commandClock(s,0,{type:'test'}),true);
+ assert.equal(s.exitUnlocked,true);
+ assert.equal(commandClock(s,0,{type:'exit'}),true);
+ assert.match(s.message,/under construction/);
+});
