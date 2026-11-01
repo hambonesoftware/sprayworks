@@ -95,9 +95,10 @@ export function createClockWorld(canvas,state,providedEngine=null){
  workers.forEach((v,i)=>{const w=state.workers[i],walking=w.job?.phase==='walk'||w.job?.phase==='board'||w.walking,carrying=w.carrying!=null;const riding=state.liftRide?.worker===w.id;const liftHeight=riding?1.9*(state.liftRide?.progress||0):(w.level===1?2.36:0);v.root.position.set(w.x,liftHeight+(walking?Math.abs(Math.sin(t*12))*.035:0),w.z);v.root.rotation.y=(w.yaw||0)+Math.PI;v.selection.setEnabled(selected===i||selected===w.id);v.legs.forEach((b,j)=>b.position.z=-.04+(walking?Math.sin(t*12+j*Math.PI)*.15:0));const teamwork=state.teamCarry?.leader===w.id||state.teamCarry?.partner===w.id;const held=state.parts.find(p=>(teamwork&&p.id===state.teamCarry?.part)||p.id===w.carrying||((w.job?.kind==='pickup'||w.job?.kind==='place'||w.job?.kind==='drop')&&w.job?.phase==='work'&&p.id===w.job.part));v.hands.forEach((h,j)=>{h.position.y=held?(held.y??.72)+.04:carrying?.76:.5+(walking?Math.sin(t*9+j*Math.PI)*.08:0);h.position.z=held||carrying?-.2:-.12;h.position.x=(j===0?-1:1)*(held?Math.min(.62,(Number(held.size)||.65)*.78):.34);});
  const washing=(w.job?.kind==='clean'||w.job?.kind==='bell')&&w.job?.phase==='work';const p=state.parts.find(p=>p.id===(w.job?.partId??w.job?.targetId??w.job?.part));v.root.computeWorldMatrix(true);const start=v.nozzle.getAbsolutePosition(),end=p?new Vector3(p.x,(p.y??.2)+.2,p.z):w.job?.kind==='bell'?new Vector3(2.65,2.9,2.5):start.add(new Vector3(0,-.15,-.7));v.drops.forEach((d,j)=>{d.setEnabled(washing);if(washing){const q=(t*2+j/12)%1;d.position=Vector3.Lerp(start,end,q);d.position.y+=Math.sin(q*Math.PI)*.13;}});
  });
- const targetY=state.upperReached?1.25:state.liftRide?.phase==='ascend'?.2+1.05*(state.liftRide.progress||0):.2;
+ const targetY=state.upperReached?1.25:(state.liftRide?.phase==='ascend'?.2+1.05*(state.liftRide.progress||0):.2);
  camera.target.y+=(targetY-camera.target.y)*.045;
- camera.radius+=(state.upperReached?16.5:((canvas.clientWidth||390)/(canvas.clientHeight||844)<.8?19.7:14.2)-camera.radius)*.012;
+ const desiredRadius=state.upperReached?16.5:((canvas.clientWidth||390)/(canvas.clientHeight||844)<.8?19.7:14.2);
+ camera.radius+=(desiredRadius-camera.radius)*.012;
  lift.position.y=liftStart+(state.liftRide?1.9*(state.liftRide.progress||0):state.upperReached?1.9:state.liftPowered?.12:0);
  bellGrime.setEnabled(!state.bellClean);
  bell.rotation.z=state.running?Math.sin(t*10)*.22:0;
