@@ -25,7 +25,7 @@ test('pickup and placement lift and lower continuously, and pause freezes height
   s.paused=true;const lowered=p.y;tickClock(s,.1);assert.equal(p.y,lowered);s.paused=false;finish(s);assert.equal(p.y,.4);
 });
 
-test('Wake the Cuckoo unlocks an elevator, bell cleanup and animated finale in sequence',()=>{const s=createClock();assert.equal(commandClock(s,0,{type:'lift'}),false);assert.equal(commandClock(s,0,{type:'bell'}),false);cleanAll(s);for(let i=0;i<3;i++){order(s,i,{type:'part',id:s.parts[i].id});order(s,i,{type:'slot',id:s.slots[i].id});}assert.equal(s.liftPowered,true);assert.equal(commandClock(s,0,{type:'test'}),false);assert.ok(commandClock(s,0,{type:'lift'}));assert.equal(s.upperReached,true);assert.equal(commandClock(s,1,{type:'bell'}),false);order(s,0,{type:'bell'});assert.equal(s.bellClean,true);assert.ok(commandClock(s,0,{type:'test'}));tickClock(s,.1);assert.ok(s.finaleTime>0);});
+test('Wake the Cuckoo unlocks an elevator, bell cleanup and animated finale in sequence',()=>{const s=createClock();assert.equal(commandClock(s,0,{type:'lift'}),false);assert.equal(commandClock(s,0,{type:'bell'}),false);cleanAll(s);for(let i=0;i<3;i++)fitGear(s,i);assert.equal(s.liftPowered,true);assert.equal(commandClock(s,0,{type:'test'}),false);assert.ok(commandClock(s,0,{type:'lift'}));assert.equal(s.upperReached,true);assert.equal(commandClock(s,1,{type:'bell'}),false);order(s,0,{type:'bell'});assert.equal(s.bellClean,true);assert.ok(commandClock(s,0,{type:'test'}));tickClock(s,.1);assert.ok(s.finaleTime>0);});
 
 test('heavy star gear requires two available workers and synchronizes both grips',()=>{
  const s=createClock();cleanAll(s);const gear=s.parts[2];assert.equal(commandClock(s,0,{type:'part',id:gear.id}),false);
