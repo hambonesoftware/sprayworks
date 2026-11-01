@@ -11,7 +11,7 @@ export function createClock() {
     ].map(w => ({...w,yaw:0,level:0,job:null,carrying:null,status:'Ready'})),
     parts: MARKS.map((mark,i) => ({id:`gear-${mark}`,name:`${mark[0].toUpperCase()+mark.slice(1)} gear`,x:[-2.6,.2,2.8][i],z:[-1.6,-2.2,-1.2][i],y:.18,home:{x:[-2.6,.2,2.8][i],z:[-1.6,-2.2,-1.2][i]},size:[.65,.52,.76][i],color:['#f4c65d','#8dd5eb','#e7a17d'][i],dirt:1,slot:null,carrier:null,mark})),
     slots: MARKS.map((mark,i) => ({id:`shaft-${mark}`,x:[-2,0,2][i],z:1,size:[.65,.52,.76][i],mark,part:null})),
-    selected:0,running:false,paused:false,liftPowered:false,upperReached:false,liftRide:null,bellClean:false,finaleTime:0,heavyGear:'gear-star',teamCarry:null,teamCarryCompleted:false,message:'Select Pip, then tap a dirty gear to wash away the grime and reveal its mark.'
+    chapter:1,chamber:'clock',exitUnlocked:false,selected:0,running:false,paused:false,liftPowered:false,upperReached:false,liftRide:null,bellClean:false,finaleTime:0,heavyGear:'gear-star',teamCarry:null,teamCarryCompleted:false,message:'Select Pip, then tap a dirty gear to wash away the grime and reveal its mark.'
   };
 }
 
@@ -25,6 +25,11 @@ export function commandClock(s,workerId,target) {
   if (!w || !target) return false;
   const reject = message => {s.message=message; return false;};
   if (s.paused) return reject('Resume the workshop before giving an order.');
+  if (target.type==='exit') {
+    if(!s.exitUnlocked)return reject('Restore the clock first to unlock the passage.');
+    s.message='Chamber 01 complete. The passage to Chamber 02 is open; its repair mission is still under construction.';
+    return true;
+  }
   if (s.running) return reject('The clock is turning! Reset to try the puzzle again.');
   if (w.job) return reject(`${w.name} is busy. Let this job finish first.`);
   if (target.type==='lift') {
@@ -52,7 +57,7 @@ export function commandClock(s,workerId,target) {
     if(wrong) return reject(`The ${wrong.mark} shaft has the wrong gear. Tap its installed gear to remove it, then match the revealed marks.`);
     if(!s.upperReached)return reject('The gears power the elevator. Ride it to discover the bell first.');
     if(!s.bellClean)return reject('The bell is jammed. Send Pip to clean the upper mechanism.');
-    s.running=true;s.finaleTime=0;s.message='The gears engage! The pendulum swings, the bell rings, and the cuckoo wakes!'; return true;
+    s.running=true;s.exitUnlocked=true;s.finaleTime=0;s.message='Chamber 01 restored! The clock drives the passage to the next machine. The exit is now unlocked.'; return true;
   }
   let job;
   if (target.type==='part') {
