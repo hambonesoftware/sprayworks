@@ -185,7 +185,25 @@ export function createClockWorld(canvas,state,providedEngine=null){
  for(const x of [-4.32,4.32,9.7,18.3]){const shell=box('machine room rounded outer bulkhead',.3,2.5,6.9,wall,[x,1.25,0]);machineShells.push(shell);for(const z of [-3.05,3.05])sphere('bulkhead rounded corner',.2,wall,[x,2.45,z]);}
  for(const x of [-3.8,-1.9,0,1.9,3.8,10.3,12.3,14.3,16.3,18]){box('floor deck panel',1.45,.022,1.3,deck,[x,.005,-2.35]);}
  const passageLights=Array.from({length:5},(_,i)=>sphere('service corridor light',.1,water,[5+i, .13,-.96],connector));
- let viewYaw=0,viewZoom=1,viewFocus='crew';
+ // Machine rooms have legible silhouettes: tall portals, illuminated routes and framed equipment.
+ const routeArrows=[];
+ for(let i=0;i<4;i++){const x=5.3+i*1.12;const arrow=new TransformNode('wayfinding arrow '+i,scene);arrow.position.set(x,.075,0);const stem=box('route arrow stem',.1,.018,.43,water,[0,0,.1],arrow);for(const side of [-1,1]){const wing=box('route arrow head',.085,.018,.29,water,[side*.105,0,-.14],arrow);wing.rotation.y=side*.68;}routeArrows.push(arrow);}
+ const roomDetails=[];
+ for(const spec of [{x:0,label:'CLOCK',mat:brass},{x:14,label:'PUMP',mat:teal}]){
+   const root=new TransformNode(spec.label+' room marker',scene);root.position.set(spec.x,0,0);
+   const badge=box(spec.label+' chamber header plate',2.4,.35,.16,dark,[0,3.12,-3.2],root);
+   const line=box(spec.label+' illuminated header line',2.1,.065,.19,spec.mat,[0,2.92,-3.23],root);
+   for(let j=0;j<3;j++){const lamp=sphere(spec.label+' header beacon',.105,spec.mat,[-.8+j*.8,3.36,-3.23],root);roomDetails.push(lamp);}
+   for(const side of [-1,1]){box(spec.label+' bulkhead foot',.46,.32,.46,wall,[side*3.65,.12,-2.8],root);}
+ }
+ const statusDoor=new TransformNode('animated service bulkhead gate',scene);
+ statusDoor.position.set(4.48,0,0);
+ const doorLeft=box('left unlocking service door',.085,1.65,1.07,wall,[0,.95,-.55],statusDoor);
+ const doorRight=box('right unlocking service door',.085,1.65,1.07,wall,[0,.95,.55],statusDoor);
+ const doorStripeL=box('left door safety stripe',.09,1.3,.075,accent,[0,.96,-.2],statusDoor);
+ const doorStripeR=box('right door safety stripe',.09,1.3,.075,accent,[0,.96,.2],statusDoor);
+
+ let viewYaw=0,viewZoom=1,viewFocus='crew',doorOpen=0,roomBlend=0;
  const liftStart=lift.position.y;
  const workVfx=Array.from({length:3},(_,i)=>{const halo=ring('gear seating pulse '+i,.85,.05,water,[0,-10,0]);halo.isPickable=false;return halo;});
  function resize(){engine.resize();const a=(canvas.clientWidth||engine.getRenderWidth())/(canvas.clientHeight||engine.getRenderHeight());camera.radius=a<.8?15.5:12.5;camera.fov=a<.8?.67:.65;}
@@ -195,6 +213,11 @@ export function createClockWorld(canvas,state,providedEngine=null){
  pumpRoom.setEnabled(true);
  connector.setEnabled(true);
  passageLights.forEach((lamp,i)=>{lamp.scaling.setAll(1+.18*Math.sin(t*2+i*.6));});
+ const openTarget=state.exitUnlocked?1:0;doorOpen+=(openTarget-doorOpen)*.065;
+ doorLeft.position.z=-.55-doorOpen*.56;doorRight.position.z=.55+doorOpen*.56;
+ doorStripeL.position.z=-.2-doorOpen*.56;doorStripeR.position.z=.2+doorOpen*.56;
+ routeArrows.forEach((a,i)=>{a.setEnabled(state.exitUnlocked);a.scaling.setAll(1+.09*Math.sin(t*3-i*.7));});
+ roomBlend+=((inPump?1:0)-roomBlend)*.025;
  parts.forEach((g,i)=>{const p=state.parts[i];g.root.setEnabled(!inPump);g.root.position.set(p.x,p.y??.2,p.z);g.root.rotation.y=state.running?t*(i%2?-1:1)*.7:0;const d=Math.max(0,Math.min(1,p.dirt??1));g.dirt.forEach((mesh,j)=>{mesh.setEnabled(d>j/10);mesh.scaling.y=.36*Math.max(.1,d);});g.symbol.setEnabled(d<.15);});
  workers.forEach((v,i)=>{
   const w=state.workers[i],a=v.animation,dt=Math.min(.05,Math.max(.001,t-(a.lastTime??t-.016)));a.lastTime=t;
@@ -261,7 +284,7 @@ export function createClockWorld(canvas,state,providedEngine=null){
  camera.alpha+=(-Math.PI/2+viewYaw-camera.alpha)*.08;
  lift.position.y=liftStart+(state.liftRide?1.9*(state.liftRide.progress||0):state.upperReached?1.9:state.liftPowered?.12:0);
  gatewayLamp.material=state.exitUnlocked?water:mud;
- floor.setEnabled(!inPump);
+ floor.setEnabled(true);
  bellGrime.setEnabled(!state.bellClean);
  bell.rotation.z=state.running?Math.sin(t*10)*.22:0;
  bird.position.z=state.running?-.15-Math.min(1,(state.finaleTime||0)/1.5)*.85:-.15;
