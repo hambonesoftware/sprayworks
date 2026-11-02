@@ -141,7 +141,7 @@ export function createClockWorld(canvas,state,providedEngine=null){
  cylinder('pressure pump body',1.1,.9,teal,[0,0,0],pumpRotor).rotation.x=Math.PI/2;
  ring('pump rotor rim',.95,.16,brass,[0,0,-.48],pumpRotor).rotation.x=Math.PI/2;
  for(let i=0;i<8;i++){const a=i*Math.PI/4;const blade=box('pump rotor blade',.18,.68,.12,silver,[Math.cos(a)*.55,Math.sin(a)*.55,-.52],pumpRotor);blade.rotation.z=a;}
- const filterMeshes=[],valveMeshes=[];
+ const filterMeshes=[],valveMeshes=[],flowIndicators=[];
  for(let i=0;i<3;i++){
   const x=-2.65+i*2.65;
   const pipe=box('pressure manifold pipe',.22,.22,3.6,silver,[x,.72,.35],pumpRoom);
@@ -151,9 +151,15 @@ export function createClockWorld(canvas,state,providedEngine=null){
   cylinder('valve stem '+i,.13,.7,brass,[0,0,0],valve,{type:'valve',index:i});
   const wheel=ring('valve wheel '+i,.44,.1,water,[0,.4,0],valve);wheel.rotation.x=Math.PI/2;wheel.isPickable=true;wheel.metadata={target:{type:'valve',index:i}};valveMeshes.push(valve);
   box('manifold riser',.14,1.6,.14,brass,[x,1.95,1.8],pumpRoom);
+  const flow=sphere('line flow indicator '+i,.13,water,[x,2.75,1.68],pumpRoom);flowIndicators.push(flow);
+  for(let j=0;j<6;j++){const bolt=sphere('filter cover fastener '+i+'-'+j,.065,silver,[x+Math.cos(j*Math.PI/3)*.35,1.02,-1.5+Math.sin(j*Math.PI/3)*.35],pumpRoom);bolt.scaling.y=.35;}
  }
  box('pump chamber overhead pipeline',6.8,.18,.2,brass,[0,2.75,1.8],pumpRoom);
  const pumpLamp=sphere('pressure running indicator',.24,mud,[0,3.12,2.95],pumpRoom);
+ const gaugeFace=cylinder('pressure gauge dial',.38,.08,cream,[2.55,2.85,3.12],pumpRoom);gaugeFace.rotation.x=Math.PI/2;
+ const gaugeNeedle=box('pressure gauge needle',.055,.55,.045,dark,[2.55,2.85,3.02],pumpRoom);
+ cylinder('pump drive motor',.65,1.45,dark,[0,1.12,2.25],pumpRoom).rotation.x=Math.PI/2;
+ for(let i=0;i<7;i++)ring('motor cooling rib',.62,.065,silver,[0,1.12,1.75+i*.17],pumpRoom).rotation.x=Math.PI/2;
  const liftStart=lift.position.y;
  function resize(){engine.resize();const a=(canvas.clientWidth||engine.getRenderWidth())/(canvas.clientHeight||engine.getRenderHeight());camera.radius=a<.8?15.5:12.5;camera.fov=a<.8?.67:.65;}
  resize();
@@ -162,10 +168,13 @@ export function createClockWorld(canvas,state,providedEngine=null){
  pumpRoom.setEnabled(inPump);
  parts.forEach((g,i)=>{const p=state.parts[i];g.root.setEnabled(!inPump);g.root.position.set(p.x,p.y??.2,p.z);g.root.rotation.y=state.running?t*(i%2?-1:1)*.7:0;const d=Math.max(0,Math.min(1,p.dirt??1));g.dirt.forEach((mesh,j)=>{mesh.setEnabled(d>j/10);mesh.scaling.y=.36*Math.max(.1,d);});g.symbol.setEnabled(d<.15);});
  workers.forEach((v,i)=>{const w=state.workers[i],walking=w.job?.phase==='walk'||w.job?.phase==='board'||w.walking,carrying=w.carrying!=null;const riding=state.liftRide?.worker===w.id;const liftHeight=riding?1.9*(state.liftRide?.progress||0):(w.level===1?2.36:0);v.root.position.set(w.x+(inPump?14:0),liftHeight+(walking?Math.abs(Math.sin(t*12))*.035:0),w.z);v.root.rotation.y=(w.yaw||0)+Math.PI;v.selection.setEnabled(selected===i||selected===w.id);v.legs.forEach((b,j)=>b.position.z=-.04+(walking?Math.sin(t*12+j*Math.PI)*.15:0));const teamwork=state.teamCarry?.leader===w.id||state.teamCarry?.partner===w.id;const held=state.parts.find(p=>(teamwork&&p.id===state.teamCarry?.part)||p.id===w.carrying||((w.job?.kind==='pickup'||w.job?.kind==='place'||w.job?.kind==='drop')&&w.job?.phase==='work'&&p.id===w.job.part));v.hands.forEach((h,j)=>{h.position.y=held?(held.y??.72)+.04:carrying?.76:.5+(walking?Math.sin(t*9+j*Math.PI)*.08:0);h.position.z=held||carrying?-.2:-.12;h.position.x=(j===0?-1:1)*(held?Math.min(.62,(Number(held.size)||.65)*.78):.34);});
- const washing=(w.job?.kind==='clean'||w.job?.kind==='bell')&&w.job?.phase==='work';const p=state.parts.find(p=>p.id===(w.job?.partId??w.job?.targetId??w.job?.part));v.root.computeWorldMatrix(true);const start=v.nozzle.getAbsolutePosition(),end=p?new Vector3(p.x,(p.y??.2)+.2,p.z):w.job?.kind==='bell'?new Vector3(2.65,2.9,2.5):start.add(new Vector3(0,-.15,-.7));v.drops.forEach((d,j)=>{d.setEnabled(washing);if(washing){const q=(t*2+j/12)%1;d.position=Vector3.Lerp(start,end,q);d.position.y+=Math.sin(q*Math.PI)*.13;}});
+ const pumpWash=inPump&&w.job?.kind==='pump-filter';const pumpTurn=inPump&&w.job?.kind==='pump-valve';const washing=((w.job?.kind==='clean'||w.job?.kind==='bell')&&w.job?.phase==='work')||pumpWash;
+ if(pumpWash||pumpTurn){v.root.rotation.y=0;v.hands.forEach((h,j)=>{h.position.y=pumpTurn?1.18:.85+Math.sin(t*12+j)*.055;h.position.z=pumpTurn?.6:-.42;h.position.x=(j===0?-.25:.25);});}const p=state.parts.find(p=>p.id===(w.job?.partId??w.job?.targetId??w.job?.part));v.root.computeWorldMatrix(true);const start=v.nozzle.getAbsolutePosition(),end=p?new Vector3(p.x,(p.y??.2)+.2,p.z):w.job?.kind==='bell'?new Vector3(2.65,2.9,2.5):pumpWash?new Vector3(14-2.65+w.job.index*2.65,.9,-1.5):start.add(new Vector3(0,-.15,-.7));v.drops.forEach((d,j)=>{d.setEnabled(washing);if(washing){const q=(t*2+j/12)%1;d.position=Vector3.Lerp(start,end,q);d.position.y+=Math.sin(q*Math.PI)*.13;}});
  });
- filterMeshes.forEach((mesh,i)=>mesh.setEnabled(inPump&&(state.pump?.filters[i]??1)>.01));
- valveMeshes.forEach((v,i)=>v.rotation.y=state.pump?.valves[i]?Math.PI/2:0);
+ filterMeshes.forEach((mesh,i)=>{const grime=state.pump?.filters[i]??1;mesh.setEnabled(inPump&&grime>.01);mesh.scaling.setAll(Math.max(.03,grime));});
+ flowIndicators.forEach((mesh,i)=>{const flowing=inPump&&state.pump?.running&&state.pump.valves[i];mesh.setEnabled(flowing);if(flowing)mesh.position.x=-2.65+i*2.65+Math.sin(t*5+i)*.11;});
+ gaugeNeedle.rotation.z=-(state.pump?.pressure||0)*Math.PI/150;
+ valveMeshes.forEach((v,i)=>v.rotation.y=(state.pump?.valveProgress?.[i]??(state.pump?.valves[i]?1:0))*Math.PI/2);
  pumpRotor.rotation.z=state.pump?.running?t*3:0;
  pumpLamp.material=state.pump?.running?water:mud;
  const upperFocus=state.upperReached||(state.liftRide?.phase==='ascend'&&state.liftRide.progress>.55);
