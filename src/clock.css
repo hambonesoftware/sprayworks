@@ -39,3 +39,5 @@ body{margin:0;background:#122f3e;color:#edf3e8;font-family:'DM Sans',sans-serif}
 .clock-demos{display:none}
 }
 @media(max-height:650px) and (orientation:landscape){.clock-objective{top:62px;left:14px;width:220px}.clock-objective h1{font-size:24px}.clock-viewer{top:72px}.clock-deck{bottom:12px}.clock-touch-hint{display:none}#pump-controls{bottom:115px}}
+
+@media(max-width:600px){.clock-objective{right:70px;left:10px;top:60px;padding:6px 9px;text-align:left}.clock-objective h1{font-size:17px}.clock-objective p{display:none}.clock-objective>span{font-size:8px}.clock-meter{margin:4px 0;width:110px}.clock-touch-hint{display:none}.clock-viewer{right:8px;top:60px}.clock-viewer button{min-height:38px;min-width:38px}.clock-deck{bottom:12px}.clock-crew button{padding:5px 3px}.clock-crew em{display:none}#clock-message{bottom:105px;padding:6px 10px}.clock-targets{bottom:93px}.clock-brand small{display:none}}
