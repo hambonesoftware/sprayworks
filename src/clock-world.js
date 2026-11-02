@@ -161,11 +161,12 @@ export function createClockWorld(canvas,state,providedEngine=null){
  const gaugeNeedle=box('pressure gauge needle',.055,.55,.045,dark,[2.55,2.85,3.02],pumpRoom);
  cylinder('pump drive motor',.65,1.45,dark,[0,1.12,2.25],pumpRoom).rotation.x=Math.PI/2;
  for(let i=0;i<7;i++)ring('motor cooling rib',.62,.065,silver,[0,1.12,1.75+i*.17],pumpRoom).rotation.x=Math.PI/2;
+ let viewYaw=0,viewZoom=1,viewFocus='auto';
  const liftStart=lift.position.y;
  const workVfx=Array.from({length:3},(_,i)=>{const halo=ring('gear seating pulse '+i,.85,.05,water,[0,-10,0]);halo.isPickable=false;return halo;});
  function resize(){engine.resize();const a=(canvas.clientWidth||engine.getRenderWidth())/(canvas.clientHeight||engine.getRenderHeight());camera.radius=a<.8?15.5:12.5;camera.fov=a<.8?.67:.65;}
  resize();
- return {scene,resize,setQuality(high){engine.setHardwareScalingLevel(high?scale():1);engine.resize();},dispose(){scene.dispose();engine.dispose();},pick(x,y){const h=scene.pick(x,y,m=>m.isPickable);if(!h?.hit)return null;const target=h.pickedMesh.metadata?.target;if(target?.type==='floor'||target?.type==='upper-floor')return {...target,x:h.pickedPoint.x,z:h.pickedPoint.z};return target||null;},render(t,selected=state.selected){
+ return {scene,resize,orbit(delta){viewYaw=Math.max(-.75,Math.min(.75,viewYaw+delta));},zoom(delta){viewZoom=Math.max(.72,Math.min(1.65,viewZoom*delta));},focus(mode){viewFocus=mode;},resetView(){viewYaw=0;viewZoom=1;viewFocus='auto';},setQuality(high){engine.setHardwareScalingLevel(high?scale():1);engine.resize();},dispose(){scene.dispose();engine.dispose();},pick(x,y){const h=scene.pick(x,y,m=>m.isPickable);if(!h?.hit)return null;const target=h.pickedMesh.metadata?.target;if(target?.type==='floor'||target?.type==='upper-floor')return {...target,x:h.pickedPoint.x,z:h.pickedPoint.z};return target||null;},render(t,selected=state.selected){
  const inPump=state.chamber==='pump';
  pumpRoom.setEnabled(inPump);
  parts.forEach((g,i)=>{const p=state.parts[i];g.root.setEnabled(!inPump);g.root.position.set(p.x,p.y??.2,p.z);g.root.rotation.y=state.running?t*(i%2?-1:1)*.7:0;const d=Math.max(0,Math.min(1,p.dirt??1));g.dirt.forEach((mesh,j)=>{mesh.setEnabled(d>j/10);mesh.scaling.y=.36*Math.max(.1,d);});g.symbol.setEnabled(d<.15);});
@@ -225,11 +226,13 @@ export function createClockWorld(canvas,state,providedEngine=null){
  pumpRotor.rotation.z=state.pump?.running?t*3:0;
  pumpLamp.material=state.pump?.running?water:mud;
  const upperFocus=state.upperReached||(state.liftRide?.phase==='ascend'&&state.liftRide.progress>.55);
- const desiredFocus=inPump?new Vector3(14,1.3,.3):(upperFocus?new Vector3(2.65,2.55,2.4):new Vector3(0,.85,.3));
+ const focusWorker=state.workers.find(w=>w.id===selected)||state.workers[0];
+ const desiredFocus=viewFocus==='crew'&&focusWorker?new Vector3(focusWorker.x+(inPump?14:0),.95+(focusWorker.level?2.36:0),focusWorker.z):inPump?new Vector3(14,1.3,.3):(upperFocus?new Vector3(2.65,2.55,2.4):new Vector3(0,.85,.3));
  camera.target=Vector3.Lerp(camera.target,desiredFocus,.035);
  const portrait=(canvas.clientWidth||390)/(canvas.clientHeight||844)<.8;
  const desiredRadius=inPump?(portrait?14.5:11.5):(upperFocus?(portrait?9.2:7.5):(portrait?15.5:12.5));
- camera.radius+=(desiredRadius-camera.radius)*.025;
+ camera.radius+=(desiredRadius*viewZoom-camera.radius)*.06;
+ camera.alpha+=(-Math.PI/2+viewYaw-camera.alpha)*.08;
  lift.position.y=liftStart+(state.liftRide?1.9*(state.liftRide.progress||0):state.upperReached?1.9:state.liftPowered?.12:0);
  gatewayLamp.material=state.exitUnlocked?water:mud;
  floor.setEnabled(!inPump);
