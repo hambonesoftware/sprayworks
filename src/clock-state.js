@@ -11,7 +11,7 @@ export function createClock() {
     ].map(w => ({...w,yaw:0,level:0,job:null,carrying:null,status:'Ready'})),
     parts: MARKS.map((mark,i) => ({id:`gear-${mark}`,name:`${mark[0].toUpperCase()+mark.slice(1)} gear`,x:[-2.6,.2,2.8][i],z:[-1.6,-2.2,-1.2][i],y:.18,home:{x:[-2.6,.2,2.8][i],z:[-1.6,-2.2,-1.2][i]},size:[.65,.52,.76][i],color:['#f4c65d','#8dd5eb','#e7a17d'][i],dirt:1,slot:null,carrier:null,mark})),
     slots: MARKS.map((mark,i) => ({id:`shaft-${mark}`,x:[-2,0,2][i],z:1,size:[.65,.52,.76][i],mark,part:null})),
-    chapter:1,chamber:'clock',exitUnlocked:false,pump:{filters:[1,1,1],valves:[false,false,false],pressure:0,running:false},selected:0,running:false,paused:false,liftPowered:false,upperReached:false,liftRide:null,bellClean:false,finaleTime:0,heavyGear:'gear-star',teamCarry:null,teamCarryCompleted:false,message:'Select Pip, then tap a dirty gear to wash away the grime and reveal its mark.'
+    chapter:1,chamber:'clock',exitUnlocked:false,pump:{filters:[1,1,1],valves:[false,false,false],valveProgress:[0,0,0],pressure:0,running:false},selected:0,running:false,paused:false,liftPowered:false,upperReached:false,liftRide:null,bellClean:false,finaleTime:0,heavyGear:'gear-star',teamCarry:null,teamCarryCompleted:false,message:'Select Pip, then tap a dirty gear to wash away the grime and reveal its mark.'
   };
 }
 
@@ -39,7 +39,7 @@ export function commandClock(s,workerId,target) {
       if(!Number.isInteger(i)||i<0||i>2)return reject('Choose a filter.');
       if(w.role!=='sprayer')return reject('Select Pip to wash the clogged filter.');
       if(pump.filters[i]===0)return reject('That filter is already clean.');
-      w.job={kind:'pump-filter',index:i,time:0,phase:'work'};w.status='Flushing filter';s.message='Pip is flushing the filter housing.';return true;
+      w.job={kind:'pump-filter',index:i,time:0,phase:'work'};w.x=-2.65+i*2.65;w.z=-2.45;w.status='Flushing filter';s.message='Pip is flushing the filter housing.';return true;
     }
     if(target.type==='valve'){
       const i=Number(target.index);
@@ -47,9 +47,10 @@ export function commandClock(s,workerId,target) {
       if(w.role!=='mechanic')return reject('Select Bolt to turn the pressure valves.');
       if(pump.filters[i]>0)return reject('Wash this line’s filter before opening its valve.');
       if(pump.valves[i])return reject('That valve is already open.');
-      w.job={kind:'pump-valve',index:i,time:0,phase:'work'};w.status='Turning valve';s.message='Bolt is opening the cleaned pressure line.';return true;
+      w.job={kind:'pump-valve',index:i,time:0,phase:'work'};w.x=-2.65+i*2.65;w.z=-.8;w.status='Turning valve';s.message='Bolt is opening the cleaned pressure line.';return true;
     }
     if(target.type==='test'){
+      if(s.workers.some(a=>a.job))return reject('Wait for the crew to finish working before testing the pump.');
       if(pump.filters.some(v=>v>0)||pump.valves.some(v=>!v))return reject('Clean all three filters and open all three valves before testing.');
       pump.running=true;s.message='Chamber 02 restored! The pressure manifold is pumping again.';return true;
     }
@@ -129,6 +130,7 @@ export function tickClock(s,dt) {
   if(s.chamber==='pump'){
     for(const w of s.workers){const j=w.job;if(!j)continue;j.time+=Math.min(dt,.1);
       if(j.kind==='pump-filter')s.pump.filters[j.index]=Math.max(0,1-j.time/1.5);
+      if(j.kind==='pump-valve')s.pump.valveProgress[j.index]=Math.min(1,j.time/1.5);
       if(j.time>=1.5){if(j.kind==='pump-filter'){s.pump.filters[j.index]=0;s.message='Filter cleaned. Select Bolt to open its valve.';}
         if(j.kind==='pump-valve'){s.pump.valves[j.index]=true;s.message='Valve open. The manifold line is ready.';}
         w.job=null;w.status='Ready';}
