@@ -11,7 +11,7 @@ export function createClock() {
     ].map(w => ({...w,yaw:0,level:0,job:null,carrying:null,status:'Ready'})),
     parts: MARKS.map((mark,i) => ({id:`gear-${mark}`,name:`${mark[0].toUpperCase()+mark.slice(1)} gear`,x:[-2.6,.2,2.8][i],z:[-1.6,-2.2,-1.2][i],y:.18,home:{x:[-2.6,.2,2.8][i],z:[-1.6,-2.2,-1.2][i]},size:[.65,.52,.76][i],color:['#f4c65d','#8dd5eb','#e7a17d'][i],dirt:1,slot:null,carrier:null,mark})),
     slots: MARKS.map((mark,i) => ({id:`shaft-${mark}`,x:[-2,0,2][i],z:1,size:[.65,.52,.76][i],mark,part:null})),
-    chapter:1,chamber:'clock',exitUnlocked:false,selected:0,running:false,paused:false,liftPowered:false,upperReached:false,liftRide:null,bellClean:false,finaleTime:0,heavyGear:'gear-star',teamCarry:null,teamCarryCompleted:false,message:'Select Pip, then tap a dirty gear to wash away the grime and reveal its mark.'
+    chapter:1,chamber:'clock',exitUnlocked:false,pump:{filters:[1,1,1],valves:[false,false,false],pressure:0,running:false},selected:0,running:false,paused:false,liftPowered:false,upperReached:false,liftRide:null,bellClean:false,finaleTime:0,heavyGear:'gear-star',teamCarry:null,teamCarryCompleted:false,message:'Select Pip, then tap a dirty gear to wash away the grime and reveal its mark.'
   };
 }
 
@@ -27,8 +27,33 @@ export function commandClock(s,workerId,target) {
   if (s.paused) return reject('Resume the workshop before giving an order.');
   if (target.type==='exit') {
     if(!s.exitUnlocked)return reject('Restore the clock first to unlock the passage.');
-    s.message='Chamber 01 complete. The passage to Chamber 02 is open; its repair mission is still under construction.';
+    s.chapter=2;s.chamber='pump';s.selected=0;
+    s.workers.forEach((a,i)=>{a.job=null;a.carrying=null;a.level=0;a.x=-2+i*1.3;a.z=-2.5;a.status='Ready';});
+    s.message='Chamber 02: The Pressure Works. Pip cleans three filters, Bolt opens the three valves, then test the pump.';
     return true;
+  }
+  if(s.chamber==='pump'){
+    const pump=s.pump;
+    if(target.type==='filter'){
+      const i=Number(target.index);
+      if(!Number.isInteger(i)||i<0||i>2)return reject('Choose a filter.');
+      if(w.role!=='sprayer')return reject('Select Pip to wash the clogged filter.');
+      if(pump.filters[i]===0)return reject('That filter is already clean.');
+      w.job={kind:'pump-filter',index:i,time:0,phase:'work'};w.status='Flushing filter';s.message='Pip is flushing the filter housing.';return true;
+    }
+    if(target.type==='valve'){
+      const i=Number(target.index);
+      if(!Number.isInteger(i)||i<0||i>2)return reject('Choose a valve.');
+      if(w.role!=='mechanic')return reject('Select Bolt to turn the pressure valves.');
+      if(pump.filters[i]>0)return reject('Wash this line’s filter before opening its valve.');
+      if(pump.valves[i])return reject('That valve is already open.');
+      w.job={kind:'pump-valve',index:i,time:0,phase:'work'};w.status='Turning valve';s.message='Bolt is opening the cleaned pressure line.';return true;
+    }
+    if(target.type==='test'){
+      if(pump.filters.some(v=>v>0)||pump.valves.some(v=>!v))return reject('Clean all three filters and open all three valves before testing.');
+      pump.running=true;s.message='Chamber 02 restored! The pressure manifold is pumping again.';return true;
+    }
+    return reject('Select a filter or valve in the Pressure Works.');
   }
   if (s.running) return reject('The clock is turning! Reset to try the puzzle again.');
   if (w.job) return reject(`${w.name} is busy. Let this job finish first.`);
@@ -101,6 +126,16 @@ export function commandClock(s,workerId,target) {
 
 export function tickClock(s,dt) {
   if(s.paused || !Number.isFinite(dt) || dt<=0) return s;
+  if(s.chamber==='pump'){
+    for(const w of s.workers){const j=w.job;if(!j)continue;j.time+=Math.min(dt,.1);
+      if(j.kind==='pump-filter')s.pump.filters[j.index]=Math.max(0,1-j.time/1.5);
+      if(j.time>=1.5){if(j.kind==='pump-filter'){s.pump.filters[j.index]=0;s.message='Filter cleaned. Select Bolt to open its valve.';}
+        if(j.kind==='pump-valve'){s.pump.valves[j.index]=true;s.message='Valve open. The manifold line is ready.';}
+        w.job=null;w.status='Ready';}
+    }
+    if(s.pump.running)s.pump.pressure=Math.min(100,s.pump.pressure+dt*22);
+    return s;
+  }
   if(s.running){s.finaleTime+=Math.min(dt,.1);return s;}
   // Bound each update so a suspended tab cannot teleport the crew across the room.
   dt=Math.min(dt,.1);
