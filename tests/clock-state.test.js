@@ -75,3 +75,7 @@ test('clock is chamber one and completion unlocks the next passage without prete
  assert.equal(commandClock(s,0,{type:'exit'}),true);
  assert.match(s.message,/under construction/);
 });
+
+test('second chamber can be completed by flushing filters and opening valves',()=>{
+ const s=createClock();cleanAll(s);for(let i=0;i<3;i++)fitGear(s,i);order(s,0,{type:'lift'});order(s,0,{type:'bell'});assert.ok(commandClock(s,0,{type:'test'}));assert.ok(commandClock(s,0,{type:'exit'}));assert.equal(s.chamber,'pump');assert.equal(commandClock(s,1,{type:'valve',index:0}),false);for(let i=0;i<3;i++){order(s,0,{type:'filter',index:i});order(s,1,{type:'valve',index:i});}assert.ok(commandClock(s,1,{type:'test'}));assert.equal(s.pump.running,true);tickClock(s,.1);assert.ok(s.pump.pressure>0);
+});
