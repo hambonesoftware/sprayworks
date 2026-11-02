@@ -9,3 +9,33 @@ body{margin:0;background:#122f3e;color:#edf3e8;font-family:'DM Sans',sans-serif}
 .clock-actions #clock-test{width:100%;min-width:0;font-size:12px}
 .clock-actions #clock-test span{display:inline;font-size:15px;margin-right:4px}
 @media(max-width:600px){.clock-actions{min-width:78px;gap:4px}.clock-actions button{font-size:9px;padding:7px 4px}.clock-actions #clock-test{font-size:10px;padding:7px 4px}.clock-deck{align-items:end}}
+
+/* Production viewer: compact, thumb-reachable controls that do not cover the repair area. */
+.clock-viewer{position:absolute;right:20px;top:105px;display:flex;flex-direction:column;gap:7px;z-index:4}
+.clock-viewer button{display:flex;align-items:center;justify-content:center;gap:5px;min-width:46px;min-height:46px;border:1px solid #c6d9d45c;background:#123643df;color:#f4eddb;border-radius:12px;font-size:23px;box-shadow:0 5px 20px #04192355;cursor:pointer;touch-action:manipulation}
+.clock-viewer button span{font:800 9px 'DM Sans',sans-serif;letter-spacing:1px}
+.clock-viewer button:active{transform:scale(.94);background:#316373}
+.clock-touch-hint{position:absolute;top:68px;left:50%;transform:translateX(-50%);pointer-events:none;font-size:9px;letter-spacing:1px;color:#e0f1e0b8;white-space:nowrap;text-shadow:0 1px 4px #051a22}
+#pump-controls{position:absolute;left:50%;bottom:185px;transform:translateX(-50%);display:flex;flex-wrap:wrap;justify-content:center;gap:7px;width:min(650px,calc(100% - 28px));padding:10px;background:#102f3ee8;border:1px solid #81b8b34b;border-radius:14px;z-index:3}
+#pump-controls[hidden]{display:none}
+#pump-filter-controls,#pump-valve-controls{display:flex;flex-wrap:wrap;gap:5px;justify-content:center}
+#pump-controls button{min-height:38px;padding:7px 9px;border:1px solid #8cbdb8;background:#214958;color:#edf5e9;border-radius:8px;font:700 10px 'DM Sans',sans-serif;cursor:pointer}
+#pump-pressure{width:100%;margin:2px 0 0;text-align:center;font-size:11px}
+.clock-objective{background:linear-gradient(90deg,#102f3ebd,#102f3e00);border-radius:10px;padding:8px 10px;margin:-8px -10px}
+@media(max-width:600px){
+.clock-header{top:max(12px,env(safe-area-inset-top))}
+.clock-objective{top:calc(max(12px,env(safe-area-inset-top)) + 55px);left:12px;right:12px;background:#102f3edb;padding:8px;margin:0;border:1px solid #7fa7a42c}
+.clock-objective h1{font-size:21px}
+.clock-objective p{font-size:10px}
+.clock-touch-hint{top:calc(max(12px,env(safe-area-inset-top)) + 38px);font-size:8px}
+.clock-viewer{right:10px;top:calc(max(12px,env(safe-area-inset-top)) + 172px);gap:6px}
+.clock-viewer button{min-width:44px;min-height:44px;font-size:20px}
+.clock-viewer button span{display:none}
+.clock-deck{bottom:calc(max(12px,env(safe-area-inset-bottom)) + 18px)}
+#clock-message{bottom:calc(max(12px,env(safe-area-inset-bottom)) + 166px)}
+#pump-controls{bottom:calc(max(12px,env(safe-area-inset-bottom)) + 176px);max-height:125px;overflow:auto}
+#pump-controls button{min-height:40px;font-size:9px}
+.clock-targets{bottom:calc(max(12px,env(safe-area-inset-bottom)) + 150px)}
+.clock-demos{display:none}
+}
+@media(max-height:650px) and (orientation:landscape){.clock-objective{top:62px;left:14px;width:220px}.clock-objective h1{font-size:24px}.clock-viewer{top:72px}.clock-deck{bottom:12px}.clock-touch-hint{display:none}#pump-controls{bottom:115px}}
