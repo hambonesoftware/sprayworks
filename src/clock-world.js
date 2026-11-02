@@ -57,13 +57,25 @@ export function createClockWorld(canvas,state,providedEngine=null){
  const symbol=new TransformNode('revealed gear symbol',scene);symbol.parent=root;symbol.position.x=r*.45;mark(symbol,p.mark??i,.13,r*.2,water);
  const dirt=Array.from({length:9},(_,j)=>{const a=j*2.4,d=sphere('removable grime',r*.23,mud,[Math.sin(a)*r*.58,.14,Math.cos(a)*r*.58],root,target);d.scaling.y=.36;return d;});return {root,dirt,symbol};});
  const workers=(state.workers||[]).map((w,i)=>{const root=new TransformNode('worker '+w.name,scene),suit=color(w.color||['#f29d3d','#39b6c9','#b191e3'][i]),target={type:'worker',id:w.id};
- sphere('rounded worker torso',.26,suit,[0,.58,0],root,target).scaling.y=1.25;
- const legs=[-1,1].map(s=>{const leg=box('articulated boot',.22,.3,.32,dark,[s*.15,.17,-.04],root,target);return leg;});
+ const trim=material('crew '+w.name+' trim','#233f50',.4),visorGlass=material('crew '+w.name+' glass',i===0?'#9ce8f4':i===1?'#a4d7ff':'#c8b8fa',.85),visorShadow=material('crew '+w.name+' visor shade','#27485c',.65);
+ visorGlass.specularPower=120;visorGlass.emissiveColor=Color3.FromHexString('#102630');
+ const body=sphere('rounded worker torso',.36,suit,[0,.63,0],root,target);body.scaling.set(1.04,1.38,.83);
+ const belly=sphere('soft rounded belly',.29,suit,[0,.52,-.115],root,target);belly.scaling.set(1,.92,.66);
+ ring('suit waist seam',.32,.035,trim,[0,.37,0],root);
+ const legs=[-1,1].map(s=>{const leg=sphere('articulated boot',.18,suit,[s*.19,.17,-.065],root,target);leg.scaling.set(1.05,1.08,1.35);const sole=box('soft boot sole',.31,.055,.37,trim,[s*.19,.04,-.085],root,target);return leg;});
  const arms=[-1,1].map(s=>{const shoulder=sphere('padded shoulder',.14,suit,[s*.29,.74,0],root,target);const elbow=sphere('flexible elbow joint',.105,suit,[s*.33,.57,-.08],root,target);const upper=cylinder('upper arm segment',.095,1,suit,[s*.32,.65,-.04],root,target);const forearm=cylinder('articulated forearm',.085,1,suit,[s*.32,.47,-.13],root,target);return {shoulder,elbow,upper,forearm};});
- const hands=[-1,1].map(s=>sphere('silver glove',.12,silver,[s*.34,.5,-.12],root,target));
- sphere('round safety helmet',.35,suit,[0,1.05,0],root,target);const rim=sphere('visor silver rim',.31,silver,[0,1.05,-.15],root,target);rim.scaling.set(1,.65,.7);const visor=sphere('wide dark visor',.285,dark,[0,1.06,-.19],root,target);visor.scaling.set(1,.6,.7);const glint=sphere('visor glint',.08,white,[-.1,1.12,-.37],root);glint.scaling.set(1,.2,.3);
- box('helmet stripe',.08,.04,.36,white,[0,1.38,0],root);box('cleaning backpack',.34,.42,.22,cream,[0,.65,.26],root,target);cylinder('water tank',.1,.38,water,[.2,.64,.28],root);
- const nozzle=box('worker spray nozzle',.12,.12,.36,brass,[.34,.55,-.3],root);const torso=root.getChildMeshes().find(m=>m.name==='rounded worker torso');const helmet=root.getChildMeshes().find(m=>m.name==='round safety helmet');const selection=ring('selected worker halo',.48,.065,water,[0,.03,0],root);
+ const hands=[-1,1].map(s=>sphere('silver glove',.145,trim,[s*.34,.5,-.12],root,target));
+ const helmet=sphere('round safety helmet',.34,suit,[0,1.02,0],root,target);helmet.scaling.set(1.04,.91,.91);
+ const rim=sphere('visor silver rim',.32,trim,[0,1.075,-.23],root,target);rim.scaling.set(1.08,.65,.49);
+ const visor=sphere('wide dark visor',.3,visorGlass,[0,1.08,-.274],root,target);visor.scaling.set(1.08,.63,.43);
+ const visorShade=sphere('visor lower reflection',.255,visorShadow,[0,1.015,-.36],root);visorShade.scaling.set(.94,.25,.13);
+ const glint=sphere('visor glint',.095,white,[-.105,1.17,-.388],root);glint.scaling.set(1.45,.35,.22);
+ const glintSmall=sphere('visor secondary highlight',.04,white,[.13,1.145,-.39],root);glintSmall.scaling.set(1,.4,.2);
+ box('helmet stripe',.085,.035,.28,white,[0,1.34,0],root);
+ const pack=box('rounded utility backpack',.42,.55,.26,trim,[0,.65,.32],root,target);sphere('backpack upper cap',.21,trim,[0,.92,.32],root,target).scaling.z=.65;
+ box('crew chest badge',.13,.1,.045,i===0?water:i===1?brass:cream,[-.23,.62,-.29],root);
+ if(i===0)cylinder('water tank',.12,.42,water,[.21,.66,.47],root);if(i===1)box('mechanic tool holster',.15,.28,.14,brass,[.3,.4,.25],root);if(i===2)sphere('helper pack canister',.17,cream,[0,.65,.51],root).scaling.y=1.35;
+ const nozzle=box('worker spray nozzle',.12,.12,.36,brass,[.34,.55,-.3],root);const torso=body;const selection=ring('selected worker halo',.48,.065,water,[0,.03,0],root);
  const drops=Array.from({length:12},()=>sphere('spray droplet',.035,water,[0,-5,0]));return {root,legs,hands,arms,nozzle,torso,helmet,selection,drops,animation:{x:w.x,z:w.z,yaw:w.yaw||0,stride:0}};});
  // CLOCK INTERIOR: three connected spaces, not a tabletop. Keep the front open for readability.
  const timber=(n,w,h,d,x,y,z)=>box(n,w,h,d,wood,[x,y,z]);
@@ -189,7 +201,7 @@ export function createClockWorld(canvas,state,providedEngine=null){
   const held=state.parts.find(p=>(teamwork&&p.id===team.part)||p.id===w.carrying||((['pickup','place','drop'].includes(w.job?.kind))&&w.job?.phase==='work'&&p.id===w.job.part));
   const work=w.job?.phase==='work',action=w.job?.kind,effort=work?Math.min(1,(w.job?.time??0)*5):0;
   const heavy=teamwork&&['brace','carry','lower'].includes(phase);
-  v.torso.scaling.y=1.25*(heavy?1-.065*Math.sin(Math.min(1,team.time)*Math.PI):1);
+  v.torso.scaling.y=1.38*(heavy?1-.065*Math.sin(Math.min(1,team.time)*Math.PI):1);
   v.helmet.rotation.z=heavy?.06*Math.sin(t*4):walking?.035*Math.sin(cycle):0;
   const locate=(mesh,from,to,radius)=>{
    const d=to.subtract(from),length=Math.max(.001,d.length());
