@@ -114,7 +114,7 @@ export function createClockWorld(canvas,state,providedEngine=null){
  }
  cylinder('tower mainspring spindle',.12,2.0,silver,[-2.9,3.9,2.8]);
  // The locked machine-to-machine gateway establishes this clock as Chamber 01.
- const gateway=new TransformNode('passage to chamber two',scene);gateway.position.set(-3.35,0,2.95);
+ const gateway=new TransformNode('passage to chamber two',scene);gateway.position.set(4.12,0,0);gateway.rotation.y=Math.PI/2;
  box('next chamber doorway surround',1.35,2.15,.22,brass,[0,1.05,0],gateway);
  box('next chamber dark door',1.04,1.76,.08,dark,[0,1.02,-.15],gateway,{type:'exit'});
  for(const x of [-.57,.57])box('next chamber door jamb',.12,2.12,.3,wood,[x,1.05,-.18],gateway);
