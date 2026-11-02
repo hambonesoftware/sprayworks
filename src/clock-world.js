@@ -270,7 +270,7 @@ export function createClockWorld(canvas,state,providedEngine=null){
  const doorStripeL=box('left door safety stripe',.09,1.3,.075,accent,[0,.96,-.2],statusDoor);
  const doorStripeR=box('right door safety stripe',.09,1.3,.075,accent,[0,.96,.2],statusDoor);
 
- let viewYaw=0,viewZoom=1,viewFocus='crew',doorOpen=0,roomBlend=0;
+ let viewYaw=0,viewZoom=1,viewFocus='room',doorOpen=0,roomBlend=0;
  const liftStart=lift.position.y;
  const workVfx=Array.from({length:3},(_,i)=>{const halo=ring('gear seating pulse '+i,.85,.05,water,[0,-10,0]);halo.isPickable=false;return halo;});
  function resize(){engine.resize();const a=(canvas.clientWidth||engine.getRenderWidth())/(canvas.clientHeight||engine.getRenderHeight());camera.radius=a<.8?15.5:12.5;camera.fov=a<.8?.67:.65;}
@@ -346,9 +346,10 @@ export function createClockWorld(canvas,state,providedEngine=null){
  const desiredFocus=viewFocus==='board'?new Vector3(7,1,.1):viewFocus==='crew'&&focusWorker?new Vector3(focusWorker.x+(inPump?14:0),.95+(focusWorker.level?2.36:0),focusWorker.z):inPump?new Vector3(14,1.3,.3):(upperFocus?new Vector3(2.65,2.55,2.4):new Vector3(0,.85,.3));
  camera.target=Vector3.Lerp(camera.target,desiredFocus,.035);
  const portrait=(canvas.clientWidth||390)/(canvas.clientHeight||844)<.8;
- const desiredRadius=viewFocus==='board'?(portrait?34:28):viewFocus==='crew'?(portrait?8.5:7):inPump?(portrait?14.5:11.5):(upperFocus?(portrait?9.2:7.5):(portrait?15.5:12.5));
+ const desiredRadius=viewFocus==='board'?(portrait?38:29):viewFocus==='crew'?(portrait?13:9):inPump?(portrait?21:15):(upperFocus?(portrait?17:12):(portrait?22:16));
  camera.radius+=(desiredRadius*viewZoom-camera.radius)*.06;
  camera.alpha+=(-Math.PI/2+viewYaw-camera.alpha)*.08;
+ camera.beta+=(1.02-camera.beta)*.055;
  lift.position.y=liftStart+(state.liftRide?1.9*(state.liftRide.progress||0):state.upperReached?1.9:state.liftPowered?.12:0);
  gatewayLamp.material=state.exitUnlocked?water:mud;
  floor.setEnabled(true);
