@@ -270,15 +270,15 @@ export function createClockWorld(canvas,state,providedEngine=null){
  const doorStripeL=box('left door safety stripe',.09,1.3,.075,accent,[0,.96,-.2],statusDoor);
  const doorStripeR=box('right door safety stripe',.09,1.3,.075,accent,[0,.96,.2],statusDoor);
 
- let viewYaw=0,viewZoom=1,viewFocus='room',doorOpen=0,roomBlend=0;
+ let viewYaw=0,viewZoom=1,viewFocus='room',doorOpen=0,roomBlend=0,viewInitialized=false;
  const liftStart=lift.position.y;
  const workVfx=Array.from({length:3},(_,i)=>{const halo=ring('gear seating pulse '+i,.85,.05,water,[0,-10,0]);halo.isPickable=false;return halo;});
- function resize(){engine.resize();const a=(canvas.clientWidth||engine.getRenderWidth())/(canvas.clientHeight||engine.getRenderHeight());camera.radius=a<.8?15.5:12.5;camera.fov=a<.8?.67:.65;}
+ function resize(){engine.resize();const a=(canvas.clientWidth||engine.getRenderWidth())/(canvas.clientHeight||engine.getRenderHeight());camera.fov=a<.8?.74:.68;if(!viewInitialized){camera.radius=a<.8?19:15;camera.target.set(0,1.15,.15);camera.beta=1.02;}}
  resize();
- return {scene,resize,orbit(delta){viewYaw=Math.max(-.75,Math.min(.75,viewYaw+delta));},zoom(delta){viewZoom=Math.max(.72,Math.min(1.65,viewZoom*delta));},focus(mode){viewFocus=mode;},resetView(){viewYaw=0;viewZoom=1;viewFocus='room';},setQuality(high){engine.setHardwareScalingLevel(high?scale():1);engine.resize();},dispose(){scene.dispose();engine.dispose();},pick(x,y){const h=scene.pick(x,y,m=>m.isPickable);if(!h?.hit)return null;const target=h.pickedMesh.metadata?.target;if(target?.type==='floor'||target?.type==='upper-floor')return {...target,x:h.pickedPoint.x,z:h.pickedPoint.z};return target||null;},render(t,selected=state.selected){
+ return {scene,resize,orbit(delta){viewYaw=Math.max(-.75,Math.min(.75,viewYaw+delta));},zoom(delta){viewZoom=Math.max(.72,Math.min(1.65,viewZoom*delta));},focus(mode){viewFocus=mode;viewZoom=1;},resetView(){viewYaw=0;viewZoom=1;viewFocus='room';},setQuality(high){engine.setHardwareScalingLevel(high?scale():1);engine.resize();},dispose(){scene.dispose();engine.dispose();},pick(x,y){const h=scene.pick(x,y,m=>m.isPickable);if(!h?.hit)return null;const target=h.pickedMesh.metadata?.target;if(target?.type==='floor'||target?.type==='upper-floor')return {...target,x:h.pickedPoint.x,z:h.pickedPoint.z};return target||null;},render(t,selected=state.selected){
  const inPump=state.chamber==='pump';
- pumpRoom.setEnabled(true);
- connector.setEnabled(true);
+ pumpRoom.setEnabled(inPump||viewFocus==='board');
+ connector.setEnabled(viewFocus==='board');
  passageLights.forEach((lamp,i)=>{lamp.scaling.setAll(1+.18*Math.sin(t*2+i*.6));});
  const openTarget=state.exitUnlocked?1:0;doorOpen+=(openTarget-doorOpen)*.065;
  doorLeft.position.z=-.55-doorOpen*.56;doorRight.position.z=.55+doorOpen*.56;
@@ -343,16 +343,16 @@ export function createClockWorld(canvas,state,providedEngine=null){
  pumpLamp.material=state.pump?.running?water:mud;
  const upperFocus=state.upperReached||(state.liftRide?.phase==='ascend'&&state.liftRide.progress>.55);
  const focusWorker=state.workers.find(w=>w.id===selected)||state.workers[0];
- const desiredFocus=viewFocus==='board'?new Vector3(7,1,.1):viewFocus==='crew'&&focusWorker?new Vector3(focusWorker.x+(inPump?14:0),.95+(focusWorker.level?2.36:0),focusWorker.z):inPump?new Vector3(14,1.3,.3):(upperFocus?new Vector3(2.65,2.55,2.4):new Vector3(0,.85,.3));
+ const desiredFocus=viewFocus==='board'?new Vector3(7,1,.1):viewFocus==='crew'&&focusWorker?new Vector3(focusWorker.x+(inPump?14:0),.95+(focusWorker.level?2.36:0),focusWorker.z):inPump?new Vector3(14,1.25,.35):new Vector3(0,1.2,.3);
  camera.target=Vector3.Lerp(camera.target,desiredFocus,.035);
  const portrait=(canvas.clientWidth||390)/(canvas.clientHeight||844)<.8;
- const desiredRadius=viewFocus==='board'?(portrait?38:29):viewFocus==='crew'?(portrait?13:9):inPump?(portrait?21:15):(upperFocus?(portrait?17:12):(portrait?22:16));
- camera.radius+=(desiredRadius*viewZoom-camera.radius)*.06;
+ const desiredRadius=viewFocus==='board'?(portrait?39:29):viewFocus==='crew'?(portrait?12.5:9):portrait?19:15;
+ if(!viewInitialized){camera.target.copyFrom(desiredFocus);camera.radius=desiredRadius*viewZoom;viewInitialized=true;}else camera.radius+=(desiredRadius*viewZoom-camera.radius)*.06;
  camera.alpha+=(-Math.PI/2+viewYaw-camera.alpha)*.08;
  camera.beta+=(1.02-camera.beta)*.055;
  lift.position.y=liftStart+(state.liftRide?1.9*(state.liftRide.progress||0):state.upperReached?1.9:state.liftPowered?.12:0);
  gatewayLamp.material=state.exitUnlocked?water:mud;
- floor.setEnabled(true);
+ floor.setEnabled(!inPump||viewFocus==='board');
  bellGrime.setEnabled(!state.bellClean);
  bell.rotation.z=state.running?Math.sin(t*10)*.22:0;
  bird.position.z=state.running?-.15-Math.min(1,(state.finaleTime||0)/1.5)*.85:-.15;
