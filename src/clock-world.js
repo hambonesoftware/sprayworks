@@ -183,7 +183,7 @@ export function createClockWorld(canvas,state,providedEngine=null){
    box('individual floor tile',.91,.018,.91,tile,[x,-.065,z],pumpRoom);
  }
  for(const x of [-4.16,4.16]){
-   box('pressure room solid side wall',.34,2.85,7.1,wall,[x,1.22,0],pumpRoom);
+   box('pressure room solid side wall',.34,2.85,7.1,dark,[x,1.22,0],pumpRoom);
    box('side wall upper cap',.48,.18,7.3,brass,[x,2.7,0],pumpRoom);
    for(const z of [-2.7,0,2.7])box('side wall pilaster',.12,2.6,.27,brass,[x,1.2,z],pumpRoom);
  }
@@ -206,7 +206,7 @@ export function createClockWorld(canvas,state,providedEngine=null){
  for(const x of [-.66,.66])box('pump casing foot',.28,.52,.7,gold,[x,.68,1.15],pumpRoom);
  for(let i=0;i<4;i++)box('pump side cooling fin',1.32,.12,.075,rubber,[0,1.1+i*.19,2.3],pumpRoom);
  // Curved pipe segments are assembled from elbow spheres and cylindrical runs.
- function pressurePipe(name,a,b,r,mat){const start=new Vector3(...a),end=new Vector3(...b),d=end.subtract(start);const mesh=cylinder(name,r,d.length(),mat,[(a[0]+b[0])/2,(a[1]+b[1])/2,(a[2]+b[2])/2],pumpRoom);mesh.rotationQuaternion=null;mesh.rotation.copyFrom(Vector3.Zero());mesh.lookAt(end);mesh.rotation.x+=Math.PI/2;return mesh;}
+ function pressurePipe(name,a,b,r,mat){const start=new Vector3(...a),end=new Vector3(...b),d=end.subtract(start);const mesh=cylinder(name,r,d.length(),mat,[(a[0]+b[0])/2,(a[1]+b[1])/2,(a[2]+b[2])/2],pumpRoom);mesh.rotation.z=-Math.atan2(d.x,d.y);mesh.rotation.x=Math.atan2(d.z,Math.hypot(d.x,d.y));return mesh;}
  for(const x of [-1.9,1.9]){
    pressurePipe('vertical pump feed', [x,.65,2.15],[x,2.55,2.15],.19,teal);
    pressurePipe('overhead feed',[x,2.55,2.15],[x*.52,2.55,2.15],.19,teal);
