@@ -73,7 +73,7 @@ test('clock is chamber one and completion unlocks the next passage without prete
  assert.equal(commandClock(s,0,{type:'test'}),true);
  assert.equal(s.exitUnlocked,true);
  assert.equal(commandClock(s,0,{type:'exit'}),true);
- assert.match(s.message,/under construction/);
+ assert.equal(s.chamber,'pump');
 });
 
 test('second chamber can be completed by flushing filters and opening valves',()=>{
