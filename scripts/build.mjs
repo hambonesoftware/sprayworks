@@ -28,12 +28,12 @@ const bundleVersion=digest(await readFile(output+"/factory.bundle.js"));
 const cssVersion=digest(await readFile(output+"/crew.css"));
 const clockVersion=digest(await readFile(output+"/clock.css"));
 let html=await readFile(output+"/index.html","utf8");
-html=html.replace(/crew\\.css\\?v=[^"\\s]+/g,`crew.css?v=${cssVersion}`)
-         .replace(/factory\\.bundle\\.js\\?v=[^"\\s]+/g,`factory.bundle.js?v=${bundleVersion}`);
+html=html.replace("crew.css?v=9",`crew.css?v=${cssVersion}`)
+         .replace("factory.bundle.js?v=9",`factory.bundle.js?v=${bundleVersion}`);
 await writeFile(output+"/index.html",html);
 // The dynamically inserted clock stylesheet must also use its own fingerprint.
 let bundle=await readFile(output+"/factory.bundle.js","utf8");
-bundle=bundle.replace(/clock\\.css\\?v=[0-9]+/g,`clock.css?v=${clockVersion}`);
+bundle=bundle.replace("clock.css?v=7",`clock.css?v=${clockVersion}`);
 await writeFile(output+"/factory.bundle.js",bundle);
 if(!html.includes(`factory.bundle.js?v=${bundleVersion}`)||!bundle.includes(`clock.css?v=${clockVersion}`))throw Error("Asset versioning failed");
 await writeFile(output+"/.nojekyll","");
