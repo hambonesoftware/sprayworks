@@ -130,22 +130,53 @@ export function createClockWorld(canvas,state,providedEngine=null){
  sphere('cuckoo body',.26,teal,[0,0,0],bird);
  sphere('cuckoo head',.18,white,[0,.24,-.12],bird);
  box('cuckoo beak',.14,.1,.2,brass,[0,.2,-.36],bird);
+ // Chamber 02 is a separate machine bay, spatially beyond the clock tower.
+ const pumpRoom=new TransformNode('pressure works chamber two',scene);
+ pumpRoom.position.set(14,0,0);
+ box('pressure works floor',8.5,.25,7,wood,[0,-.2,0],pumpRoom,{type:'pump-floor'});
+ box('pressure works rear wall',8.5,4,.35,dark,[0,1.8,3.4],pumpRoom);
+ for(const x of [-3.9,3.9])box('pressure works support',.3,4,.4,brass,[x,1.8,3.1],pumpRoom);
+ box('pressure works overhead header',8.3,.35,.5,brass,[0,3.65,3.15],pumpRoom);
+ const pumpRotor=new TransformNode('pump rotor',scene);pumpRotor.parent=pumpRoom;pumpRotor.position.set(0,1.15,1.3);
+ cylinder('pressure pump body',1.1,.9,teal,[0,0,0],pumpRotor).rotation.x=Math.PI/2;
+ ring('pump rotor rim',.95,.16,brass,[0,0,-.48],pumpRotor).rotation.x=Math.PI/2;
+ for(let i=0;i<8;i++){const a=i*Math.PI/4;const blade=box('pump rotor blade',.18,.68,.12,silver,[Math.cos(a)*.55,Math.sin(a)*.55,-.52],pumpRotor);blade.rotation.z=a;}
+ const filterMeshes=[],valveMeshes=[];
+ for(let i=0;i<3;i++){
+  const x=-2.65+i*2.65;
+  const pipe=box('pressure manifold pipe',.22,.22,3.6,silver,[x,.72,.35],pumpRoom);
+  cylinder('filter housing '+i,.42,.95,teal,[x,.55,-1.5],pumpRoom,{type:'filter',index:i});
+  const dirt=sphere('filter sludge '+i,.31,mud,[x,.95,-1.5],pumpRoom,{type:'filter',index:i});filterMeshes.push(dirt);
+  const valve=new TransformNode('pressure valve '+i,scene);valve.parent=pumpRoom;valve.position.set(x,1.2,.2);
+  cylinder('valve stem '+i,.13,.7,brass,[0,0,0],valve,{type:'valve',index:i});
+  const wheel=ring('valve wheel '+i,.44,.1,water,[0,.4,0],valve);wheel.rotation.x=Math.PI/2;wheel.isPickable=true;wheel.metadata={target:{type:'valve',index:i}};valveMeshes.push(valve);
+  box('manifold riser',.14,1.6,.14,brass,[x,1.95,1.8],pumpRoom);
+ }
+ box('pump chamber overhead pipeline',6.8,.18,.2,brass,[0,2.75,1.8],pumpRoom);
+ const pumpLamp=sphere('pressure running indicator',.24,mud,[0,3.12,2.95],pumpRoom);
  const liftStart=lift.position.y;
  function resize(){engine.resize();const a=(canvas.clientWidth||engine.getRenderWidth())/(canvas.clientHeight||engine.getRenderHeight());camera.radius=a<.8?15.5:12.5;camera.fov=a<.8?.67:.65;}
  resize();
  return {scene,resize,setQuality(high){engine.setHardwareScalingLevel(high?scale():1);engine.resize();},dispose(){scene.dispose();engine.dispose();},pick(x,y){const h=scene.pick(x,y,m=>m.isPickable);if(!h?.hit)return null;const target=h.pickedMesh.metadata?.target;if(target?.type==='floor'||target?.type==='upper-floor')return {...target,x:h.pickedPoint.x,z:h.pickedPoint.z};return target||null;},render(t,selected=state.selected){
- parts.forEach((g,i)=>{const p=state.parts[i];g.root.position.set(p.x,p.y??.2,p.z);g.root.rotation.y=state.running?t*(i%2?-1:1)*.7:0;const d=Math.max(0,Math.min(1,p.dirt??1));g.dirt.forEach((mesh,j)=>{mesh.setEnabled(d>j/10);mesh.scaling.y=.36*Math.max(.1,d);});g.symbol.setEnabled(d<.15);});
- workers.forEach((v,i)=>{const w=state.workers[i],walking=w.job?.phase==='walk'||w.job?.phase==='board'||w.walking,carrying=w.carrying!=null;const riding=state.liftRide?.worker===w.id;const liftHeight=riding?1.9*(state.liftRide?.progress||0):(w.level===1?2.36:0);v.root.position.set(w.x,liftHeight+(walking?Math.abs(Math.sin(t*12))*.035:0),w.z);v.root.rotation.y=(w.yaw||0)+Math.PI;v.selection.setEnabled(selected===i||selected===w.id);v.legs.forEach((b,j)=>b.position.z=-.04+(walking?Math.sin(t*12+j*Math.PI)*.15:0));const teamwork=state.teamCarry?.leader===w.id||state.teamCarry?.partner===w.id;const held=state.parts.find(p=>(teamwork&&p.id===state.teamCarry?.part)||p.id===w.carrying||((w.job?.kind==='pickup'||w.job?.kind==='place'||w.job?.kind==='drop')&&w.job?.phase==='work'&&p.id===w.job.part));v.hands.forEach((h,j)=>{h.position.y=held?(held.y??.72)+.04:carrying?.76:.5+(walking?Math.sin(t*9+j*Math.PI)*.08:0);h.position.z=held||carrying?-.2:-.12;h.position.x=(j===0?-1:1)*(held?Math.min(.62,(Number(held.size)||.65)*.78):.34);});
+ const inPump=state.chamber==='pump';
+ pumpRoom.setEnabled(inPump);
+ parts.forEach((g,i)=>{const p=state.parts[i];g.root.setEnabled(!inPump);g.root.position.set(p.x,p.y??.2,p.z);g.root.rotation.y=state.running?t*(i%2?-1:1)*.7:0;const d=Math.max(0,Math.min(1,p.dirt??1));g.dirt.forEach((mesh,j)=>{mesh.setEnabled(d>j/10);mesh.scaling.y=.36*Math.max(.1,d);});g.symbol.setEnabled(d<.15);});
+ workers.forEach((v,i)=>{const w=state.workers[i],walking=w.job?.phase==='walk'||w.job?.phase==='board'||w.walking,carrying=w.carrying!=null;const riding=state.liftRide?.worker===w.id;const liftHeight=riding?1.9*(state.liftRide?.progress||0):(w.level===1?2.36:0);v.root.position.set(w.x+(inPump?14:0),liftHeight+(walking?Math.abs(Math.sin(t*12))*.035:0),w.z);v.root.rotation.y=(w.yaw||0)+Math.PI;v.selection.setEnabled(selected===i||selected===w.id);v.legs.forEach((b,j)=>b.position.z=-.04+(walking?Math.sin(t*12+j*Math.PI)*.15:0));const teamwork=state.teamCarry?.leader===w.id||state.teamCarry?.partner===w.id;const held=state.parts.find(p=>(teamwork&&p.id===state.teamCarry?.part)||p.id===w.carrying||((w.job?.kind==='pickup'||w.job?.kind==='place'||w.job?.kind==='drop')&&w.job?.phase==='work'&&p.id===w.job.part));v.hands.forEach((h,j)=>{h.position.y=held?(held.y??.72)+.04:carrying?.76:.5+(walking?Math.sin(t*9+j*Math.PI)*.08:0);h.position.z=held||carrying?-.2:-.12;h.position.x=(j===0?-1:1)*(held?Math.min(.62,(Number(held.size)||.65)*.78):.34);});
  const washing=(w.job?.kind==='clean'||w.job?.kind==='bell')&&w.job?.phase==='work';const p=state.parts.find(p=>p.id===(w.job?.partId??w.job?.targetId??w.job?.part));v.root.computeWorldMatrix(true);const start=v.nozzle.getAbsolutePosition(),end=p?new Vector3(p.x,(p.y??.2)+.2,p.z):w.job?.kind==='bell'?new Vector3(2.65,2.9,2.5):start.add(new Vector3(0,-.15,-.7));v.drops.forEach((d,j)=>{d.setEnabled(washing);if(washing){const q=(t*2+j/12)%1;d.position=Vector3.Lerp(start,end,q);d.position.y+=Math.sin(q*Math.PI)*.13;}});
  });
+ filterMeshes.forEach((mesh,i)=>mesh.setEnabled(inPump&&(state.pump?.filters[i]??1)>.01));
+ valveMeshes.forEach((v,i)=>v.rotation.y=state.pump?.valves[i]?Math.PI/2:0);
+ pumpRotor.rotation.z=state.pump?.running?t*3:0;
+ pumpLamp.material=state.pump?.running?water:mud;
  const upperFocus=state.upperReached||(state.liftRide?.phase==='ascend'&&state.liftRide.progress>.55);
- const desiredFocus=upperFocus?new Vector3(2.65,2.55,2.4):new Vector3(0,.85,.3);
+ const desiredFocus=inPump?new Vector3(14,1.3,.3):(upperFocus?new Vector3(2.65,2.55,2.4):new Vector3(0,.85,.3));
  camera.target=Vector3.Lerp(camera.target,desiredFocus,.035);
  const portrait=(canvas.clientWidth||390)/(canvas.clientHeight||844)<.8;
- const desiredRadius=upperFocus?(portrait?9.2:7.5):(portrait?15.5:12.5);
+ const desiredRadius=inPump?(portrait?14.5:11.5):(upperFocus?(portrait?9.2:7.5):(portrait?15.5:12.5));
  camera.radius+=(desiredRadius-camera.radius)*.025;
  lift.position.y=liftStart+(state.liftRide?1.9*(state.liftRide.progress||0):state.upperReached?1.9:state.liftPowered?.12:0);
  gatewayLamp.material=state.exitUnlocked?water:mud;
+ floor.setEnabled(!inPump);
  bellGrime.setEnabled(!state.bellClean);
  bell.rotation.z=state.running?Math.sin(t*10)*.22:0;
  bird.position.z=state.running?-.15-Math.min(1,(state.finaleTime||0)/1.5)*.85:-.15;
