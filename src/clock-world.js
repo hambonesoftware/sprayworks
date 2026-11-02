@@ -173,6 +173,73 @@ export function createClockWorld(canvas,state,providedEngine=null){
  const gaugeNeedle=box('pressure gauge needle',.055,.55,.045,dark,[2.55,2.85,3.02],pumpRoom);
  cylinder('pump drive motor',.65,1.45,dark,[0,1.12,2.25],pumpRoom).rotation.x=Math.PI/2;
  for(let i=0;i<7;i++)ring('motor cooling rib',.62,.065,silver,[0,1.12,1.75+i*.17],pumpRoom).rotation.x=Math.PI/2;
+
+ // Pressure Works art-direction pass: one furnished, inhabited machine room.
+ const tile=material('pressure slate floor','#77778d',.32),tileSeam=material('tile joint','#50576b'),gold=material('pump satin gold','#edbb59',.72),cyan=material('cyan liquid','#43d6fa',.7),glass=material('tank glass','#a4eafa',.8),rubber=material('machinery seals','#253c4d'),lampMat=material('warm fixture','#ffdda0',.7),red=material('toolbox red','#cc564f',.35);
+ lampMat.emissiveColor=Color3.FromHexString('#9b6429');cyan.emissiveColor=Color3.FromHexString('#096b9c');
+ // Architectural envelope: substantial back and side walls, tiled floor, window and door.
+ box('pressure room architectural base',8.8,.32,7.3,tile,[0,-.36,0],pumpRoom);
+ for(let x=-3.75;x<=3.8;x+=.95)for(let z=-3;z<=3.1;z+=.95){
+   box('individual floor tile',.91,.018,.91,tile,[x,-.065,z],pumpRoom);
+ }
+ for(const x of [-4.16,4.16]){
+   box('pressure room solid side wall',.34,2.85,7.1,wall,[x,1.22,0],pumpRoom);
+   box('side wall upper cap',.48,.18,7.3,brass,[x,2.7,0],pumpRoom);
+   for(const z of [-2.7,0,2.7])box('side wall pilaster',.12,2.6,.27,brass,[x,1.2,z],pumpRoom);
+ }
+ box('rear wall inner panel',7.8,2.7,.08,tile,[0,1.42,3.17],pumpRoom);
+ for(const x of [-2.8,2.8]){box('rear wall utility light housing',1.05,.34,.25,rubber,[x,3.02,2.98],pumpRoom);box('warm industrial wall lamp',.85,.17,.26,lampMat,[x,3.01,2.82],pumpRoom);}
+ // Large round-cornered observation window, layered frame and illuminated pane.
+ box('rear observation window outer frame',2.45,1.35,.14,gold,[0,2.65,3.01],pumpRoom);
+ box('rear observation window inset',2.19,1.11,.15,glass,[0,2.65,2.91],pumpRoom);
+ box('window vertical divider',.085,1.1,.19,rubber,[0,2.65,2.8],pumpRoom);
+ for(const y of [2.18,3.11])box('window frame bevel',2.48,.075,.18,rubber,[0,y,2.8],pumpRoom);
+ // A substantial stationary pump casing, raised plinth and protective walkways.
+ box('pump reinforced concrete plinth',3.6,.45,2.35,rubber,[0,.12,1.25],pumpRoom);
+ box('pump plinth illuminated fascia',3.2,.13,.07,lampMat,[0,.15,-.0],pumpRoom);
+ for(const x of [-1.55,1.55])for(const z of [.3,2.1])cylinder('pump foundation anchor',.1,.12,gold,[x,.43,z],pumpRoom,undefined,12);
+ cylinder('main pump pressure housing',.9,2.15,teal,[0,1.42,1.15],pumpRoom).rotation.x=Math.PI/2;
+ for(const z of [.12,.45,1.8,2.16]){
+   const flange=cylinder('machined pump flange',1.01,.13,gold,[0,1.42,z],pumpRoom);flange.rotation.x=Math.PI/2;
+   for(let j=0;j<12;j++){const a=j*Math.PI/6;sphere('flange bolt head',.073,silver,[Math.cos(a)*.92,1.42+Math.sin(a)*.92,z],pumpRoom);}
+ }
+ for(const x of [-.66,.66])box('pump casing foot',.28,.52,.7,gold,[x,.68,1.15],pumpRoom);
+ for(let i=0;i<4;i++)box('pump side cooling fin',1.32,.12,.075,rubber,[0,1.1+i*.19,2.3],pumpRoom);
+ // Curved pipe segments are assembled from elbow spheres and cylindrical runs.
+ function pressurePipe(name,a,b,r,mat){const start=new Vector3(...a),end=new Vector3(...b),d=end.subtract(start);const mesh=cylinder(name,r,d.length(),mat,[(a[0]+b[0])/2,(a[1]+b[1])/2,(a[2]+b[2])/2],pumpRoom);mesh.rotationQuaternion=null;mesh.rotation.copyFrom(Vector3.Zero());mesh.lookAt(end);mesh.rotation.x+=Math.PI/2;return mesh;}
+ for(const x of [-1.9,1.9]){
+   pressurePipe('vertical pump feed', [x,.65,2.15],[x,2.55,2.15],.19,teal);
+   pressurePipe('overhead feed',[x,2.55,2.15],[x*.52,2.55,2.15],.19,teal);
+   sphere('pipe formed elbow',.21,teal,[x,2.55,2.15],pumpRoom);
+   for(const y of [.78,2.4]){const collar=cylinder('pipe clamp collar',.26,.12,gold,[x,y,2.15],pumpRoom);collar.rotation.x=0;}
+ }
+ // Three translucent-looking reservoirs with illuminated blue contents and protective hoops.
+ for(let i=0;i<3;i++){
+   const x=1.9+i*.86;
+   cylinder('fluid reservoir bottom pedestal '+i,.34,.18,rubber,[x,.25,2.67],pumpRoom);
+   const vessel=cylinder('fluid reservoir '+i,.28,1.15,glass,[x,.94,2.67],pumpRoom);
+   const liquid=cylinder('reservoir glowing fluid '+i,.245,.74,cyan,[x,.74,2.67],pumpRoom);
+   for(const y of [.4,1.5])cylinder('reservoir brass retaining ring',.33,.095,gold,[x,y,2.67],pumpRoom);
+   sphere('reservoir top cap',.3,gold,[x,1.58,2.67],pumpRoom).scaling.y=.35;
+ }
+ // Floor grates and directional maintenance stripes.
+ for(const [x,z] of [[-3,-.2],[3,-.2],[-2.5,-2.6],[2.5,-2.6]]){
+   box('drain grate recess',.86,.027,.54,rubber,[x,-.043,z],pumpRoom);
+   for(let j=-2;j<=2;j++)box('drain grate metal bar',.045,.038,.5,silver,[x+j*.15,-.019,z],pumpRoom);
+ }
+ for(let i=0;i<7;i++)box('maintenance lane yellow dash',.33,.023,.075,gold,[-3.4+i*.38,-.035,-2.95],pumpRoom);
+ // Service furniture: stocked shelves, control console, workbench and tool chest.
+ box('left wall storage frame',1.45,1.7,.47,rubber,[-3.12,.94,2.7],pumpRoom);
+ for(const y of [.35,.83,1.32]){box('storage shelf',1.43,.09,.55,gold,[-3.12,y,2.42],pumpRoom);for(const x of [-3.55,-3.12,-2.69])box('boxed spare part',.25,.22,.26,cream,[x,y+.16,2.42],pumpRoom);}
+ box('pump electrical control console',.82,1.17,.37,rubber,[-3.4,1.52,3],pumpRoom);
+ for(let i=0;i<6;i++)sphere('control indicator',.065,i%2?cyan:gold,[-3.62+(i%3)*.22,1.62+Math.floor(i/3)*.2,2.77],pumpRoom);
+ box('red mechanic rolling chest',.86,.84,.54,red,[3.23,.43,-2.56],pumpRoom);
+ for(let i=0;i<3;i++)box('tool chest drawer',.67,.13,.03,rubber,[3.23,.26+i*.21,-2.85],pumpRoom);
+ for(const x of [2.95,3.52])for(const z of [-2.35,-2.75])sphere('tool chest caster',.085,rubber,[x,.08,z],pumpRoom);
+ box('workbench counter',1.55,.14,.63,wood,[2.85,.92,-3.12],pumpRoom);
+ for(const x of [2.22,3.47])box('workbench leg',.12,.86,.13,rubber,[x,.47,-3.12],pumpRoom);
+ // Rounded guard rails with regular posts along the machinery platform.
+ for(const z of [.12,2.28]){pressurePipe('pump safety rail',[-1.8,.85,z],[1.8,.85,z],.047,gold);for(let x=-1.8;x<=1.81;x+=.9)pressurePipe('guard rail upright',[x,.39,z],[x,.86,z],.045,gold);}
  // Connected 3D cutaway board: two machine rooms linked by a physical service corridor.
  const deck=material('soft blue deck','#416a7b'),wall=material('rounded bulkhead','#6a8d99'),walk=material('corridor walkway','#a9c4c2'),accent=material('warning orange','#efac67'),doorGlow=material('portal status','#81e0d6');
  const connector=new TransformNode('shared machine service corridor',scene);
