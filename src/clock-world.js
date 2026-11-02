@@ -270,12 +270,12 @@ export function createClockWorld(canvas,state,providedEngine=null){
  const doorStripeL=box('left door safety stripe',.09,1.3,.075,accent,[0,.96,-.2],statusDoor);
  const doorStripeR=box('right door safety stripe',.09,1.3,.075,accent,[0,.96,.2],statusDoor);
 
- let viewYaw=0,viewZoom=1,viewFocus='room',doorOpen=0,roomBlend=0,viewInitialized=false;
+ let viewYaw=0,viewZoom=1,viewFocus='room',doorOpen=0,roomBlend=0,viewInitialized=false,manualUntil=0,lastFrameTime=0,shotKind='room';
  const liftStart=lift.position.y;
  const workVfx=Array.from({length:3},(_,i)=>{const halo=ring('gear seating pulse '+i,.85,.05,water,[0,-10,0]);halo.isPickable=false;return halo;});
  function resize(){engine.resize();const a=(canvas.clientWidth||engine.getRenderWidth())/(canvas.clientHeight||engine.getRenderHeight());camera.fov=a<.8?.74:.68;if(!viewInitialized){camera.radius=a<.8?19:15;camera.target.set(0,1.15,.15);camera.beta=1.02;}}
  resize();
- return {scene,resize,orbit(delta){viewYaw=Math.max(-.75,Math.min(.75,viewYaw+delta));},zoom(delta){viewZoom=Math.max(.72,Math.min(1.65,viewZoom*delta));},focus(mode){viewFocus=mode;viewZoom=1;},resetView(){viewYaw=0;viewZoom=1;viewFocus='room';},setQuality(high){engine.setHardwareScalingLevel(high?scale():1);engine.resize();},dispose(){scene.dispose();engine.dispose();},pick(x,y){const h=scene.pick(x,y,m=>m.isPickable);if(!h?.hit)return null;const target=h.pickedMesh.metadata?.target;if(target?.type==='floor'||target?.type==='upper-floor')return {...target,x:h.pickedPoint.x,z:h.pickedPoint.z};return target||null;},render(t,selected=state.selected){
+ return {scene,resize,orbit(delta){viewYaw=Math.max(-.65,Math.min(.65,viewYaw+delta));manualUntil=lastFrameTime+8;},zoom(delta){viewZoom=Math.max(.72,Math.min(1.8,viewZoom*delta));manualUntil=lastFrameTime+8;},focus(mode){viewFocus=mode;viewZoom=1;manualUntil=lastFrameTime+12;},resetView(){viewYaw=0;viewZoom=1;viewFocus='room';},setQuality(high){engine.setHardwareScalingLevel(high?scale():1);engine.resize();},dispose(){scene.dispose();engine.dispose();},pick(x,y){const h=scene.pick(x,y,m=>m.isPickable);if(!h?.hit)return null;const target=h.pickedMesh.metadata?.target;if(target?.type==='floor'||target?.type==='upper-floor')return {...target,x:h.pickedPoint.x,z:h.pickedPoint.z};return target||null;},render(t,selected=state.selected){
  const inPump=state.chamber==='pump';
  pumpRoom.setEnabled(inPump||viewFocus==='board');
  connector.setEnabled(viewFocus==='board');
@@ -341,15 +341,52 @@ export function createClockWorld(canvas,state,providedEngine=null){
  valveMeshes.forEach((v,i)=>v.rotation.y=(state.pump?.valveProgress?.[i]??(state.pump?.valves[i]?1:0))*Math.PI/2);
  pumpRotor.rotation.z=state.pump?.running?t*3:0;
  pumpLamp.material=state.pump?.running?water:mud;
- const upperFocus=state.upperReached||(state.liftRide?.phase==='ascend'&&state.liftRide.progress>.55);
- const focusWorker=state.workers.find(w=>w.id===selected)||state.workers[0];
- const desiredFocus=viewFocus==='board'?new Vector3(7,1,.1):viewFocus==='crew'&&focusWorker?new Vector3(focusWorker.x+(inPump?14:0),.95+(focusWorker.level?2.36:0),focusWorker.z):inPump?new Vector3(14,1.25,.35):new Vector3(0,1.2,.3);
- camera.target=Vector3.Lerp(camera.target,desiredFocus,.035);
+ // Camera director: prioritize an entire playable room, with bounded contextual shots.
+ lastFrameTime=t;
  const portrait=(canvas.clientWidth||390)/(canvas.clientHeight||844)<.8;
- const desiredRadius=viewFocus==='board'?(portrait?39:29):viewFocus==='crew'?(portrait?12.5:9):portrait?19:15;
- if(!viewInitialized){camera.target.copyFrom(desiredFocus);camera.radius=desiredRadius*viewZoom;viewInitialized=true;}else camera.radius+=(desiredRadius*viewZoom-camera.radius)*.06;
- camera.alpha+=(-Math.PI/2+viewYaw-camera.alpha)*.08;
- camera.beta+=(1.02-camera.beta)*.055;
+ const aspect=Math.max(.35,(canvas.clientWidth||390)/(canvas.clientHeight||844));
+ const centerX=inPump?14:0;
+ const selectedWorker=state.workers.find(w=>w.id===selected)||state.workers[0];
+ const manual=t<manualUntil;
+ const activeWorkers=state.workers.filter(w=>w.job);
+ const team=state.teamCarry;
+ const liftActive=Boolean(state.liftRide);
+ const action=activeWorkers[0]?.job;
+ const actionWorker=activeWorkers[0];
+ let subject=null,span=0,kind='room';
+ if(!manual&&viewFocus==='room'&&team){
+   const leader=state.workers.find(w=>w.id===team.leader),partner=state.workers.find(w=>w.id===team.partner);
+   if(leader&&partner){subject=new Vector3(centerX+(leader.x+partner.x)/2,1.05,(leader.z+partner.z)/2);span=Math.max(4,Math.hypot(leader.x-partner.x,leader.z-partner.z)+2.5);kind='team';}
+ }else if(!manual&&viewFocus==='room'&&liftActive){
+   subject=new Vector3(2.6,2.1,2.2);span=6.4;kind='lift';
+ }else if(!manual&&viewFocus==='room'&&action&&actionWorker){
+   let px=actionWorker.x,pz=actionWorker.z;
+   if(action.kind==='pump-filter'){px=-2.65+action.index*2.65;pz=-1.5;}
+   if(action.kind==='pump-valve'){px=-2.65+action.index*2.65;pz=.2;}
+   if(action.kind==='bell'){px=2.9;pz=2.2;}
+   if(action.part){const part=state.parts.find(p=>p.id===action.part);if(part){px=part.x;pz=part.z;}}
+   subject=new Vector3(centerX+(actionWorker.x+px)/2,action.kind==='bell'?2.45:.95,(actionWorker.z+pz)/2);
+   span=5.8;kind='work';
+ }
+ const shot=viewFocus==='board'?'board':viewFocus==='crew'?'crew':subject?kind:'room';
+ // Fit world-space bounds into the camera's actual vertical and horizontal field of view.
+ // Reserve space for the objective at the top and the crew deck at the bottom.
+ const usableHeight=portrait?.70:.78,usableWidth=portrait?.88:.79;
+ const verticalFov=camera.fov;
+ const horizontalFov=2*Math.atan(Math.tan(verticalFov/2)*aspect);
+ const fit=(width,depth)=>Math.max(width/(2*Math.tan(horizontalFov/2)*usableWidth),depth/(2*Math.tan(verticalFov/2)*usableHeight));
+ let desiredFocus,desiredRadius;
+ if(shot==='board'){desiredFocus=new Vector3(7,1.2,.1);desiredRadius=fit(27,13);}
+ else if(shot==='crew'){desiredFocus=new Vector3(centerX+selectedWorker.x,1+(selectedWorker.level?2.36:0),selectedWorker.z);desiredRadius=fit(5.8,6);}
+ else if(subject){desiredFocus=subject;desiredRadius=fit(span,span*.85);}
+ else {desiredFocus=new Vector3(centerX,1.25,.25);desiredRadius=fit(10.7,9.7);}
+ desiredRadius=Math.max(shot==='crew'?7:11,Math.min(55,desiredRadius))*viewZoom;
+ const smoothing=shotKind===shot?.075:.045;
+ if(!viewInitialized){camera.target.copyFrom(desiredFocus);camera.radius=desiredRadius;camera.beta=1.04;viewInitialized=true;}
+ else{camera.target=Vector3.Lerp(camera.target,desiredFocus,smoothing);camera.radius+=(desiredRadius-camera.radius)*smoothing;}
+ shotKind=shot;
+ camera.alpha+=(-Math.PI/2+viewYaw-camera.alpha)*.065;
+ camera.beta+=(1.04-camera.beta)*.055;
  lift.position.y=liftStart+(state.liftRide?1.9*(state.liftRide.progress||0):state.upperReached?1.9:state.liftPowered?.12:0);
  gatewayLamp.material=state.exitUnlocked?water:mud;
  floor.setEnabled(!inPump||viewFocus==='board');
