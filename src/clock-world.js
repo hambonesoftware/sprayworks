@@ -59,12 +59,12 @@ export function createClockWorld(canvas,state,providedEngine=null){
  const workers=(state.workers||[]).map((w,i)=>{const root=new TransformNode('worker '+w.name,scene),suit=color(w.color||['#f29d3d','#39b6c9','#b191e3'][i]),target={type:'worker',id:w.id};
  sphere('rounded worker torso',.26,suit,[0,.58,0],root,target).scaling.y=1.25;
  const legs=[-1,1].map(s=>{const leg=box('articulated boot',.22,.3,.32,dark,[s*.15,.17,-.04],root,target);return leg;});
- const arms=[-1,1].map(s=>{const shoulder=sphere('padded shoulder',.14,suit,[s*.29,.74,0],root,target);const forearm=cylinder('articulated forearm',.085,.37,suit,[s*.32,.57,-.09],root,target);return {shoulder,forearm};});
+ const arms=[-1,1].map(s=>{const shoulder=sphere('padded shoulder',.14,suit,[s*.29,.74,0],root,target);const elbow=sphere('flexible elbow joint',.105,suit,[s*.33,.57,-.08],root,target);const upper=cylinder('upper arm segment',.095,1,suit,[s*.32,.65,-.04],root,target);const forearm=cylinder('articulated forearm',.085,1,suit,[s*.32,.47,-.13],root,target);return {shoulder,elbow,upper,forearm};});
  const hands=[-1,1].map(s=>sphere('silver glove',.12,silver,[s*.34,.5,-.12],root,target));
  sphere('round safety helmet',.35,suit,[0,1.05,0],root,target);const rim=sphere('visor silver rim',.31,silver,[0,1.05,-.15],root,target);rim.scaling.set(1,.65,.7);const visor=sphere('wide dark visor',.285,dark,[0,1.06,-.19],root,target);visor.scaling.set(1,.6,.7);const glint=sphere('visor glint',.08,white,[-.1,1.12,-.37],root);glint.scaling.set(1,.2,.3);
  box('helmet stripe',.08,.04,.36,white,[0,1.38,0],root);box('cleaning backpack',.34,.42,.22,cream,[0,.65,.26],root,target);cylinder('water tank',.1,.38,water,[.2,.64,.28],root);
- const nozzle=box('worker spray nozzle',.12,.12,.36,brass,[.34,.55,-.3],root);const selection=ring('selected worker halo',.48,.065,water,[0,.03,0],root);
- const drops=Array.from({length:12},()=>sphere('spray droplet',.035,water,[0,-5,0]));return {root,legs,hands,arms,nozzle,selection,drops};});
+ const nozzle=box('worker spray nozzle',.12,.12,.36,brass,[.34,.55,-.3],root);const torso=root.getChildMeshes().find(m=>m.name==='rounded worker torso');const helmet=root.getChildMeshes().find(m=>m.name==='round safety helmet');const selection=ring('selected worker halo',.48,.065,water,[0,.03,0],root);
+ const drops=Array.from({length:12},()=>sphere('spray droplet',.035,water,[0,-5,0]));return {root,legs,hands,arms,nozzle,torso,helmet,selection,drops,animation:{x:w.x,z:w.z,yaw:w.yaw||0,stride:0}};});
  // CLOCK INTERIOR: three connected spaces, not a tabletop. Keep the front open for readability.
  const timber=(n,w,h,d,x,y,z)=>box(n,w,h,d,wood,[x,y,z]);
  const metal=(n,w,h,d,x,y,z)=>box(n,w,h,d,brass,[x,y,z]);
@@ -169,9 +169,53 @@ export function createClockWorld(canvas,state,providedEngine=null){
  const inPump=state.chamber==='pump';
  pumpRoom.setEnabled(inPump);
  parts.forEach((g,i)=>{const p=state.parts[i];g.root.setEnabled(!inPump);g.root.position.set(p.x,p.y??.2,p.z);g.root.rotation.y=state.running?t*(i%2?-1:1)*.7:0;const d=Math.max(0,Math.min(1,p.dirt??1));g.dirt.forEach((mesh,j)=>{mesh.setEnabled(d>j/10);mesh.scaling.y=.36*Math.max(.1,d);});g.symbol.setEnabled(d<.15);});
- workers.forEach((v,i)=>{const w=state.workers[i],walking=w.job?.phase==='walk'||w.job?.phase==='board'||w.walking,carrying=w.carrying!=null;const riding=state.liftRide?.worker===w.id;const liftHeight=riding?1.9*(state.liftRide?.progress||0):(w.level===1?2.36:0);v.root.position.set(w.x+(inPump?14:0),liftHeight+(walking?Math.abs(Math.sin(t*12))*.035:0),w.z);v.root.rotation.y=(w.yaw||0)+Math.PI;v.selection.setEnabled(selected===i||selected===w.id);v.legs.forEach((b,j)=>b.position.z=-.04+(walking?Math.sin(t*12+j*Math.PI)*.15:0));const teamwork=state.teamCarry?.leader===w.id||state.teamCarry?.partner===w.id;const teamPhase=teamwork?state.teamCarry.phase:null;const held=state.parts.find(p=>(teamwork&&p.id===state.teamCarry?.part)||p.id===w.carrying||((w.job?.kind==='pickup'||w.job?.kind==='place'||w.job?.kind==='drop')&&w.job?.phase==='work'&&p.id===w.job.part));v.hands.forEach((h,j)=>{const side=j===0?-1:1;const phase=w.job?.phase;const working=phase==='work';const action=w.job?.kind;const liftPose=teamwork&&['brace','carry','lower'].includes(teamPhase);const p=held;const reach=liftPose||Boolean(p);const reachHeight=p?(p.y??.72)+.06:.5;const bob=walking?Math.sin(t*9+j*Math.PI)*.08:0;const easing=working?Math.min(1,(w.job?.time??0)*5):1;h.position.y=reach?reachHeight:(working&&action==='clean'?.68+.04*Math.sin(t*10):.5+bob);h.position.z=reach?-.22:working&&action==='bell'?-.44:-.12;h.position.x=side*(reach?Math.min(.64,(Number(p?.size)||.65)*.78):.34);if(liftPose&&teamPhase==='brace')h.position.y=.48+Math.min(.32,state.teamCarry.time*.4);if(liftPose&&teamPhase==='lower')h.position.y=reachHeight;const arm=v.arms[j].forearm;const shoulder=new Vector3(side*.29,.74,0);const hand=h.position;const delta=hand.subtract(shoulder);arm.position.copyFrom(shoulder.add(delta.scale(.5)));arm.scaling.y=Math.max(.3,delta.length()/.37);arm.rotationQuaternion=null;arm.rotation.set(0,0,0);arm.lookAt(hand);arm.rotate(new Vector3(1,0,0),Math.PI/2);});
- const pumpWash=inPump&&w.job?.kind==='pump-filter';const pumpTurn=inPump&&w.job?.kind==='pump-valve';const washing=((w.job?.kind==='clean'||w.job?.kind==='bell')&&w.job?.phase==='work')||pumpWash;
- if(pumpWash||pumpTurn){v.root.rotation.y=0;v.hands.forEach((h,j)=>{h.position.y=pumpTurn?1.18:.85+Math.sin(t*12+j)*.055;h.position.z=pumpTurn?.6:-.42;h.position.x=(j===0?-.25:.25);});}const p=state.parts.find(p=>p.id===(w.job?.partId??w.job?.targetId??w.job?.part));v.root.computeWorldMatrix(true);const start=v.nozzle.getAbsolutePosition(),end=p?new Vector3(p.x,(p.y??.2)+.2,p.z):w.job?.kind==='bell'?new Vector3(2.65,2.9,2.5):pumpWash?new Vector3(14-2.65+w.job.index*2.65,.9,-1.5):start.add(new Vector3(0,-.15,-.7));v.drops.forEach((d,j)=>{d.setEnabled(washing);if(washing){const q=(t*2+j/12)%1;d.position=Vector3.Lerp(start,end,q);d.position.y+=Math.sin(q*Math.PI)*.13;}});
+ workers.forEach((v,i)=>{
+  const w=state.workers[i],a=v.animation,dt=Math.min(.05,Math.max(.001,t-(a.lastTime??t-.016)));a.lastTime=t;
+  const pumpWash=inPump&&w.job?.kind==='pump-filter',pumpTurn=inPump&&w.job?.kind==='pump-valve';
+  const team=state.teamCarry,teamwork=team&&(team.leader===w.id||team.partner===w.id),phase=teamwork?team.phase:null;
+  const riding=state.liftRide?.worker===w.id,liftHeight=riding?1.9*(state.liftRide?.progress||0):(w.level===1?2.36:0);
+  const targetX=w.x+(inPump?14:0),targetZ=w.z;
+  const moved=Math.hypot(targetX-a.x,targetZ-a.z),walking=moved>.003||w.job?.phase==='walk'||w.job?.phase==='board'||phase==='carry';
+  const smooth=1-Math.exp(-dt*17);a.x+=(targetX-a.x)*smooth;a.z+=(targetZ-a.z)*smooth;
+  a.stride+=Math.min(.16,moved)*9;
+  const yawTarget=(pumpWash||pumpTurn)?0:(w.yaw||0)+Math.PI;
+  let yawDelta=((yawTarget-a.yaw+Math.PI*3)%(Math.PI*2))-Math.PI;a.yaw+=yawDelta*(1-Math.exp(-dt*12));
+  const gait=walking?Math.min(1,moved*12+.22):0,cycle=a.stride;
+  const bounce=gait*(.026+.025*Math.abs(Math.sin(cycle*2)));
+  v.root.position.set(a.x,liftHeight+bounce,a.z);v.root.rotation.y=a.yaw;
+  v.selection.setEnabled(selected===i||selected===w.id);
+  v.legs.forEach((leg,j)=>{const s=j===0?1:-1,step=Math.sin(cycle+s*Math.PI/2)*gait;leg.position.z=-.04+step*.18;leg.position.y=.17+Math.max(0,step)*.1;leg.rotation.x=step*.22;});
+  const held=state.parts.find(p=>(teamwork&&p.id===team.part)||p.id===w.carrying||((['pickup','place','drop'].includes(w.job?.kind))&&w.job?.phase==='work'&&p.id===w.job.part));
+  const work=w.job?.phase==='work',action=w.job?.kind,effort=work?Math.min(1,(w.job?.time??0)*5):0;
+  const heavy=teamwork&&['brace','carry','lower'].includes(phase);
+  v.torso.scaling.y=1.25*(heavy?1-.065*Math.sin(Math.min(1,team.time)*Math.PI):1);
+  v.helmet.rotation.z=heavy?.06*Math.sin(t*4):walking?.035*Math.sin(cycle):0;
+  const locate=(mesh,from,to,radius)=>{
+   const d=to.subtract(from),length=Math.max(.001,d.length());
+   mesh.position.copyFrom(from.add(d.scale(.5)));mesh.scaling.y=length;
+   mesh.rotationQuaternion=null;mesh.rotation.set(0,0,0);
+   mesh.lookAt(to);mesh.rotate(new Vector3(1,0,0),Math.PI/2);
+  };
+  v.hands.forEach((h,j)=>{
+   const side=j===0?-1:1,shoulder=new Vector3(side*.29,.74,0);
+   let target=new Vector3(side*.34,.49+gait*Math.sin(cycle+j*Math.PI)*.06,-.12);
+   if(held){const grip=Math.min(.64,(Number(held.size)||.65)*.78);target.set(side*grip,(held.y??.72)+.06-liftHeight,-.22);}
+   if(heavy&&phase==='brace')target.y=.46+Math.min(.32,team.time*.4);
+   if(pumpWash){target.set(side*.25,.78+Math.sin(t*12+j)*.045,-.45);}
+   if(pumpTurn){const theta=(state.pump?.valveProgress?.[w.job.index]||0)*Math.PI/2+j*Math.PI;target.set(Math.cos(theta)*.36,1.18+Math.sin(theta)*.15,.38);}
+   if(work&&action==='clean'&&!held)target.set(side*.25,.66+Math.sin(t*10+j)*.035,-.42);
+   if(work&&action==='bell')target.set(side*.28,.9,-.48);
+   const elbow=shoulder.add(target.subtract(shoulder).scale(.48)).add(new Vector3(side*.09,-.08,.08));
+   h.position.copyFrom(target);v.arms[j].elbow.position.copyFrom(elbow);
+   locate(v.arms[j].upper,shoulder,elbow);locate(v.arms[j].forearm,elbow,target);
+  });
+  const nozzleHand=v.hands[1];v.nozzle.position.set(nozzleHand.position.x,nozzleHand.position.y,nozzleHand.position.z-.17);
+  v.root.computeWorldMatrix(true);
+  const p=state.parts.find(p=>p.id===(w.job?.partId??w.job?.targetId??w.job?.part));
+  const washing=((action==='clean'||action==='bell')&&work)||pumpWash;
+  const start=v.nozzle.getAbsolutePosition();
+  const end=p?new Vector3(p.x,(p.y??.2)+.2,p.z):action==='bell'?new Vector3(2.65,2.9,2.5):pumpWash?new Vector3(14-2.65+w.job.index*2.65,.9,-1.5):start.add(new Vector3(0,-.15,-.7));
+  v.drops.forEach((d,j)=>{d.setEnabled(Boolean(washing));if(washing){const q=(t*2+j/12)%1;d.position=Vector3.Lerp(start,end,q);d.position.y+=Math.sin(q*Math.PI)*.13;}});
  });
  workVfx.forEach((pulse,i)=>{const part=state.parts[i];const seating=state.teamCarry?.phase==='lower'&&state.teamCarry.part===part.id;const solo=state.workers.some(w=>w.job?.kind==='place'&&w.job.part===part.id&&w.job.phase==='work');const active=!inPump&&(seating||solo);pulse.setEnabled(active);if(active){pulse.position.set(part.x,.42,part.z);pulse.scaling.setAll(.85+Math.sin(t*13)*.09);}});
  filterMeshes.forEach((mesh,i)=>{const grime=state.pump?.filters[i]??1;mesh.setEnabled(inPump&&grime>.01);mesh.scaling.setAll(Math.max(.03,grime));});
